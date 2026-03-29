@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ZALITH NEURAL CORE</title>
+    <style>
+        :root { --p: #bc13fe; --b: #00f3ff; --g: #39ff14; --dark: #000000; --card: #0a0a0a; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: var(--dark); color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+
+        /* FIXED HEADER & MENU BTN */
+        .header-bar { position: fixed; top: 0; width: 100%; height: 60px; background: rgba(0,0,0,0.9); z-index: 100; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid var(--p); }
+        .menu-btn { font-size: 1.8rem; color: var(--b); cursor: pointer; }
+
+        /* SIDE MENU (OPPO STYLE) */
+        .side-menu { position: fixed; top: 0; left: -100%; width: 80%; height: 100%; background: var(--card); z-index: 200; transition: 0.3s; padding: 20px; border-right: 2px solid var(--p); }
+        .side-menu.active { left: 0; }
+        .overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 150; display: none; }
+
+        /* CONTENT AREA */
+        .main-scroll { height: 100vh; overflow-y: auto; padding: 70px 15px 20px 15px; }
+
+        /* AI CORE BOX */
+        .ai-box { background: rgba(188, 19, 254, 0.05); border: 1px solid var(--p); border-radius: 15px; padding: 20px; text-align: center; margin-bottom: 15px; }
+        .ai-orb { width: 60px; height: 60px; background: var(--p); border-radius: 50%; margin: 0 auto; box-shadow: 0 0 30px var(--p); animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); opacity: 0.5; } 50% { transform: scale(1.1); opacity: 1; } 100% { transform: scale(1); opacity: 0.5; } }
+
+        /* INVENTORY (VISUAL) */
+        .inv-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 3px; background: #050505; padding: 8px; border-radius: 10px; border: 1px solid #222; }
+        .slot { aspect-ratio: 1; background: #111; border: 1px solid #333; display: flex; align-items: center; justify-content: center; font-size: 0.9rem; }
+
+        /* MASTER MATRIX (SCROLLABLE) */
+        .matrix { background: #050505; border: 1px solid var(--g); border-radius: 10px; margin-top: 15px; }
+        .matrix-head { background: var(--g); color: #000; padding: 5px 10px; font-weight: bold; font-size: 0.7rem; border-radius: 8px 8px 0 0; }
+        .matrix-list { height: 250px; overflow-y: scroll; padding: 10px; font-family: monospace; font-size: 0.7rem; }
+        .row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #111; }
+    </style>
+</head>
+<body>
+
+    <div class="header-bar">
+        <div class="menu-btn" onclick="toggleM()">☰</div>
+        <div style="margin-left: 20px; color: var(--p); font-weight: bold; font-size: 0.8rem;">NEURAL ENGINE: ACTIVE</div>
+    </div>
+
+    <div class="overlay" id="over" onclick="toggleM()"></div>
+    <div class="side-menu" id="sm">
+        <h2 style="color: var(--b);">SYSTEM</h2>
+        <p style="color: #666; font-size: 0.7rem;">IP: play.falixnodes.net</p>
+        <button style="width:100%; background:var(--p); color:white; border:none; padding:12px; border-radius:8px; font-weight:bold;" onclick="toggleM()">LOGLARA DÖN</button>
+        <div style="margin-top: 50px; color: var(--r);" onclick="toggleM()">[ ÇIKIŞ ]</div>
+    </div>
+
+    <div class="main-scroll">
+        <div class="ai-box">
+            <div class="ai-orb"></div>
+            <p style="color: var(--b); font-size: 0.7rem; margin-top: 10px;">CORE AI: ANALYZING SERVER DATA...</p>
+        </div>
+
+        <div class="inv-grid" id="ig"></div>
+
+        <div class="matrix">
+            <div class="matrix-head">MASTER MATRIX - 1000 ACTIVE MODS</div>
+            <div class="matrix-list" id="ml"></div>
+        </div>
+    </div>
+
+    <script>
+        function toggleM() {
+            document.getElementById('sm').classList.toggle('active');
+            document.getElementById('over').style.display = (document.getElementById('over').style.display === 'block') ? 'none' : 'block';
+        }
+
+        const ig = document.getElementById('ig');
+        for(let i=0; i<36; i++) ig.innerHTML += `<div class="slot">${i==0?'⚔️':i==2?'💎':''}</div>`;
+
+        const ml = document.getElementById('ml');
+        for(let i=1; i<=1000; i++) ml.innerHTML += `<div class="row"><span>[#${1000+i}] MOD_${i}</span><span style="color:var(--g)">RUNNING</span></div>`;
+    </script>
+</body>
+</html>
