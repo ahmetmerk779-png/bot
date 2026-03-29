@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>THE OVERLORD | Ultimate Dashboard v1.0</title>
+    <style>
+        /* OPPO 120HZ NEON & GLASSMORPHISM DESIGN */
+        :root {
+            --neon-purple: #bc13fe;
+            --neon-blue: #00f3ff;
+            --neon-green: #39ff14;
+            --neon-red: #ff3131;
+            --bg-dark: #020202;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            overflow: hidden;
+            height: 100vh;
+            user-select: none;
+        }
+
+        /* ANA TAYŞIYICI (SCROLLABLE SECTIONS) */
+        .dashboard-container {
+            display: flex;
+            width: 500vw; /* 5 Ana Bölüm */
+            height: 100vh;
+            transition: transform 0.6s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .section {
+            width: 100vw;
+            height: 100vh;
+            padding: 25px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            background: radial-gradient(circle at center, rgba(188, 19, 254, 0.02) 0%, transparent 70%);
+        }
+
+        /* GLASSMORPHISM CARDS */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.02);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
+        }
+
+        h2 { font-size: 1.3rem; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; border-left: 4px solid; padding-left: 10px; }
+
+        .live-log {
+            font-family: 'Consolas', 'Courier New', monospace;
+            font-size: 0.75rem;
+            color: var(--neon-green);
+            background: rgba(0,0,0,0.4);
+            padding: 12px;
+            border-radius: 12px;
+            height: 120px;
+            overflow-y: auto;
+            line-height: 1.4;
+        }
+
+        /* NAVIGATION DOTS */
+        .nav-dots {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 100;
+        }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: 0.3s; }
+        .dot.active { width: 24px; border-radius: 10px; background: var(--neon-purple); box-shadow: 0 0 15px var(--neon-purple); }
+
+        /* PROGRESS BAR ANIMATION */
+        .progress-bar { height: 4px; background: #222; border-radius: 2px; margin: 10px 0; overflow: hidden; }
+        .progress-fill { height: 100%; background: var(--neon-blue); width: 0%; transition: width 0.5s; }
+    </style>
+</head>
+<body>
+
+    <div class="dashboard-container" id="mainContainer">
+        
+        <div class="section">
+            <div class="glass-card" style="border-color: var(--neon-blue);">
+                <h2 style="color: var(--neon-blue); border-color: var(--neon-blue);">🛡️ Sentinel Monitor</h2>
+                <p>UptimeRobot: <span style="color: var(--neon-green);">CONNECTED (%100)</span></p>
+                <div class="progress-bar"><div class="progress-fill" style="width: 100%; box-shadow: 0 0 10px var(--neon-blue);"></div></div>
+                <div class="live-log" id="networkLogs">
+                    >> [0.1s] Heartbeat received from UptimeRobot...<br>
+                    >> [0.2s] Socket Encryption: AES-256 ACTIVE...<br>
+                    >> [0.3s] Proxy: Tunnel-3.0 Established (#901)...
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="glass-card" style="border-color: var(--neon-purple);">
+                <h2 style="color: var(--neon-purple); border-color: var(--neon-purple);">🧠 Neural Core 1000</h2>
+                <p>AI State: <span style="color: var(--neon-purple);">ANALYZING MARKET (#801)</span></p>
+                <div class="live-log" id="aiLogs" style="color: var(--neon-purple);">
+                    >> Analiz: Pazar manipülasyonu başlatıldı...<br>
+                    >> Karar: 12 Elmas toplandı, fiyat %40 artırılıyor...
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="glass-card" style="border-color: var(--neon-green);">
+                <h2 style="color: var(--neon-green); border-color: var(--neon-green);">🎒 Live Inventory</h2>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 15px;">
+                    <div style="background: rgba(255,255,255,0.05); height: 60px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">⚔️</div>
+                    <div style="background: rgba(255,255,255,0.05); height: 60px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">💎</div>
+                    <div style="background: rgba(255,255,255,0.05); height: 60px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🛡️</div>
+                    <div style="background: rgba(255,255,255,0.05); height: 60px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🍎</div>
+                </div>
+                <p style="font-size: 0.8rem; margin-top: 15px; color: #888;">MODÜLLER: #135 (Auto-Armor), #84 (Smart-Sort)</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="glass-card" style="border-color: var(--neon-red);">
+                <h2 style="color: var(--neon-red); border-color: var(--neon-red);">📡 Intel & Spy Hub</h2>
+                <div style="background: rgba(255, 49, 49, 0.1); padding: 12px; border-radius: 15px;">
+                    <span style="color: var(--neon-red); font-weight: bold;">⚠️ ADMİN RADARI:</span><br>
+                    <span id="adminStatus">>> [Vanish] Admin 'Mod_X' 42m yakında!</span>
+                </div>
+                <div class="live-log" id="spyLogs" style="color: #ff8888; margin-top: 10px;">
+                    >> İstihbarat: 'King_PvP' klan kasası koordinatı alındı...<br>
+                    >> Sohbet Analizi: Baskın kelimesi saptandı (%12 risk).
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="glass-card">
+                <h2 style="color: gold; border-color: gold;">🌌 Master Matrix</h2>
+                <div id="matrixList" style="font-size: 0.65rem; color: #555; display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                    </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="nav-dots" id="dots">
+        <div class="dot active"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+    </div>
+
+    <script>
+        const container = document.getElementById('mainContainer');
+        const dots = document.querySelectorAll('.dot');
+        let currentIdx = 0;
+        let startX = 0;
+
+        // OPPO GESTURE CONTROL (KAYDIRMA)
+        window.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+        window.addEventListener('touchend', e => {
+            let endX = e.changedTouches[0].clientX;
+            if (startX - endX > 60 && currentIdx < 4) currentIdx++;
+            if (startX - endX < -60 && currentIdx > 0) currentIdx--;
+            updateUI();
+        });
+
+        function updateUI() {
+            container.style.transform = `translateX(-${currentIdx * 100}vw)`;
+            dots.forEach((d, i) => d.classList.toggle('active', i === currentIdx));
+            // OPPO HAPTIC FEEDBACK SİMÜLASYONU
+            if(window.navigator.vibrate) window.navigator.vibrate(10);
+        }
+
+        // 1000 ÖZELLİK MATRİS OLUŞTURUCU
+        const matrix = document.getElementById('matrixList');
+        for(let i=1; i<=40; i++) {
+            matrix.innerHTML += `<div>#MOD_${i+900}: <span style="color:var(--neon-green)">ACTIVE</span></div>`;
+        }
+
+        // CANLI VERİ AKIŞI (SİMÜLASYON)
+        setInterval(() => {
+            const aiThoughts = [
+                ">> [AI]: Risk analizi tamamlandı. Güvenli.",
+                ">> [AI]: Modül #801 devrede. Pazar kilitlendi.",
+                ">> [AI]: Yeni hedef saptandı: X: 450 Y: 12 Z: -200",
+                ">> [AI]: Admin hareketleri izleniyor (Ghost-Mode)."
+            ];
+            document.getElementById('aiLogs').innerHTML = aiThoughts[Math.floor(Math.random()*aiThoughts.length)];
+        }, 4000);
+    </script>
+</body>
+</html>
