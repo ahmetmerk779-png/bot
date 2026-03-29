@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AEMIR AI - MASTER OS v10.0</title>
+    <style>
+        :root { --neon: #00f2ff; --bg: #010103; --card: rgba(255, 255, 255, 0.03); --danger: #ff4444; --safe: #00ff88; --warn: #ffaa00; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; outline: none; }
+        body { background: var(--bg); color: #e0e0e0; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; height: 100vh; }
+        header { padding: 15px 20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(15px); border-bottom: 2px solid var(--neon); display: flex; justify-content: space-between; align-items: center; z-index: 1000; position: relative; }
+        .pulse-dot { height: 12px; width: 12px; background: var(--safe); border-radius: 50%; display: inline-block; box-shadow: 0 0 15px var(--safe); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(0, 255, 136, 0); } 100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); } }
+        .swiper { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: calc(100vh - 65px); scrollbar-width: none; }
+        .swiper::-webkit-scrollbar { display: none; }
+        .page { min-width: 100vw; height: 100%; scroll-snap-align: start; padding: 20px; overflow-y: auto; position: relative; }
+        .radar { width: 100%; height: 50vh; border-radius: 25px; border: 2px solid var(--neon); position: relative; background: #000; overflow: hidden; box-shadow: inset 0 0 30px rgba(0,242,255,0.2); }
+        .scan { position: absolute; width: 100%; height: 3px; background: var(--neon); animation: scan 2.5s infinite linear; opacity: 0.6; }
+        @keyframes scan { from { top: 0; } to { top: 100%; } }
+        .radar-grid { position: absolute; width: 100%; height: 100%; background-image: linear-gradient(rgba(0,242,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(0,242,255,0.05) 1px, transparent 1px); background-size: 20px 20px; }
+        .dot-admin { position: absolute; width: 10px; height: 10px; background: var(--danger); border-radius: 50%; top: 20%; left: 70%; animation: blink 1s infinite; box-shadow: 0 0 10px var(--danger); }
+        @keyframes blink { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+        .cmd-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        .btn { padding: 18px; background: var(--card); border: 1px solid var(--neon); border-radius: 20px; color: #fff; text-align: center; font-size: 13px; font-weight: bold; }
+        .btn:active { background: var(--neon); color: #000; transform: scale(0.96); }
+        .ai-log { height: 180px; border-radius: 20px; background: rgba(0,242,255,0.02); border-left: 5px solid var(--neon); padding: 15px; font-family: monospace; font-size: 12px; overflow-y: auto; }
+        .nav { position: fixed; bottom: 25px; width: 100%; display: flex; justify-content: center; gap: 10px; pointer-events: none; }
+        .n-dot { width: 8px; height: 8px; background: rgba(255,255,255,0.1); border-radius: 50%; transition: 0.3s; }
+        .n-dot.active { background: var(--neon); width: 30px; border-radius: 5px; }
+    </style>
+</head>
+<body>
+<header>
+    <div><span class="pulse-dot"></span> <strong>AEMIR-AI <span style="color:var(--neon)">MASTER OS</span></strong></div>
+    <div style="font-size: 11px; opacity: 0.7;">OPPO 12GB</div>
+</header>
+<div class="swiper" id="sw">
+    <div class="page">
+        <h2 style="color:var(--neon); margin:0 0 15px 0;">📡 Canlı Radar</h2>
+        <div class="radar">
+            <div class="radar-grid"></div>
+            <div class="scan"></div>
+            <div class="dot-admin"></div>
+            <div style="position:absolute; bottom:15px; left:15px; font-size:10px; font-family:monospace;">
+                <span style="color:var(--danger)">⚠️ ADMIN YAKINDA: Jack (7m)</span><br>
+                <span style="color:var(--safe)">✅ BOT DURUMU: GIZLİ</span>
+            </div>
+        </div>
+        <div style="text-align:center; opacity:0.5; margin-top:10px; font-size:12px;">Yana Kaydır ➔</div>
+    </div>
+    <div class="page">
+        <h2 style="color:var(--neon); margin:0 0 15px 0;">⚔️ Protokoller</h2>
+        <div class="cmd-grid">
+            <div class="btn" onclick="alert('AUTO-LOGIN AKTIF')">AUTO LOGIN</div>
+            <div class="btn" onclick="alert('PAZAR TARANIYOR')">AH SNIPER</div>
+            <div class="btn" onclick="alert('EVE GIDILIYOR')">EVE DON</div>
+            <div class="btn" style="border-color:var(--danger)" onclick="alert('ACIL CIKIS!')">GIZLI CIKIS</div>
+        </div>
+        <div style="background:var(--card); padding:15px; border-radius:20px; margin-top:20px; border:1px solid rgba(255,255,255,0.1);">
+            <strong style="color:var(--neon)">Status:</strong> 500+ Özellik Altyapısı Hazır.
+        </div>
+    </div>
+    <div class="page">
+        <h2 style="color:var(--neon); margin:0 0 15px 0;">🧠 AI Log Akışı</h2>
+        <div class="ai-log" id="lg">
+            <div style="color:var(--neon)">[19:45:01] AI Motoru Başlatıldı.</div>
+            <div>[19:45:05] Sunucu: AesirMC Bağlantı Stabil.</div>
+            <div style="color:var(--danger)">[19:45:12] KRITIK: Admin Vanish Shimmer Algılandı!</div>
+        </div>
+        <textarea id="aiInput" placeholder="Emir yaz knk..." style="width:100%; height:80px; background:#000; border:2px solid var(--neon); border-radius:15px; color:#fff; margin-top:15px; padding:10px;"></textarea>
+        <div class="btn" style="width:100%; margin-top:10px; background:var(--neon); color:#000;" onclick="alert('AI Kod Güncelliyor...')">UYGULA</div>
+    </div>
+</div>
+<div class="nav"><div class="n-dot active"></div><div class="n-dot"></div><div class="n-dot"></div></div>
+<script>
+    const sw = document.getElementById('sw'); const nt = document.querySelectorAll('.n-dot');
+    sw.addEventListener('scroll', () => { const i = Math.round(sw.scrollLeft / window.innerWidth); nt.forEach((d, idx) => d.classList.toggle('active', idx === i)); });
+    setInterval(() => { const l = document.getElementById('lg'); const e = document.createElement('div'); e.innerHTML = `[${new Date().toLocaleTimeString()}] Pazar (AH) Taraması: Temiz.`; l.appendChild(e); l.scrollTop = l.scrollHeight; }, 4000);
+</script>
+</body>
+</html>
