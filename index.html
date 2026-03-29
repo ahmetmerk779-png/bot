@@ -1,1 +1,138 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OVERLORD ULTIMATE V5 | CONTROL MODE</title>
+    <style>
+        :root { --p: #bc13fe; --b: #00f3ff; --g: #39ff14; --r: #ff3131; --y: #ffd700; --dark: #050505; }
+        body, html { margin: 0; padding: 0; background: var(--dark); color: #eee; font-family: 'Roboto', sans-serif; overflow: hidden; height: 100vh; }
+        .main-wrapper { display: flex; width: 400vw; height: 100vh; transition: transform 0.4s cubic-bezier(0.1, 0.7, 0.1, 1); }
+        .page { width: 100vw; height: 100vh; padding: 20px; box-sizing: border-box; overflow-y: auto; }
+        .card { background: rgba(255,255,255,0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 15px; margin-bottom: 15px; box-shadow: 0 8px 32px rgba(0,0,0,1); }
+        h2 { font-size: 1rem; text-transform: uppercase; color: var(--b); border-bottom: 1px solid #333; padding-bottom: 5px; margin-top: 0; }
+        .btn { background: #222; border: 1px solid var(--p); color: white; padding: 12px; border-radius: 12px; width: 100%; font-weight: bold; margin-top: 10px; transition: 0.3s; }
+        .btn:active { background: var(--p); transform: scale(0.95); box-shadow: 0 0 20px var(--p); }
+        input, select { width: 100%; background: #111; border: 1px solid #444; color: white; padding: 10px; border-radius: 10px; box-sizing: border-box; margin-top: 5px; }
+        .mod-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #222; font-size: 0.75rem; background: rgba(255,255,255,0.01); }
+        .mod-status { color: #555; font-weight: bold; }
+        .dots { position: fixed; bottom: 15px; left: 50%; transform: translateX(-50%); display: flex; gap: 8px; }
+        .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; }
+        .dot.active { background: var(--b); width: 20px; border-radius: 5px; }
+        .log-screen { height: 120px; overflow-y: auto; font-size: 0.7rem; color: var(--b); font-family: monospace; background: #000; padding: 8px; border-radius: 10px; border: 1px solid #222; }
+    </style>
+</head>
+<body>
+
+<div class="main-wrapper" id="wrapper">
+    
+    <div class="page">
+        <div class="card" style="border-top: 4px solid var(--p);">
+            <h2>🤖 BOT CORE CONFIG</h2>
+            <label style="font-size: 0.7rem; color: #888;">BOT KULLANICI ADI</label>
+            <input type="text" id="botName" value="Zalith_Bot_Alpha">
+            <label style="font-size: 0.7rem; color: #888; margin-top: 10px; display: block;">SERVER IP</label>
+            <input type="text" id="srvIP" value="play.falixnodes.net">
+            <label style="font-size: 0.7rem; color: #888; margin-top: 10px; display: block;">VERSION</label>
+            <select id="version"><option>1.20.1</option><option>1.19.4</option><option>1.8.9</option></select>
+            <button class="btn" onclick="startSystem()">SİSTEMİ BAŞLAT</button>
+        </div>
+        <div class="card">
+            <h2 style="color: var(--g);">🛡️ NETWORK STATUS</h2>
+            <div id="netStat" style="font-family: monospace; font-size: 0.7rem; color: #555;">>> Sistem Beklemede...</div>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="card" style="border-top: 4px solid var(--y);">
+            <h2>🌌 MASTER MATRIX (1000 MODS)</h2>
+            <div id="matrix" style="height: 75vh; overflow-y: auto;">
+                </div>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="card" style="border-top: 4px solid var(--r);">
+            <h2>⚔️ WAR ROOM (EMİR BEKLENİYOR)</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <button class="btn" onclick="act('#801 PAZAR SABOTAJI')">PAZAR MODÜLÜ</button>
+                <button class="btn" onclick="act('#121 ADMIN RADAR')">ADMIN RADAR</button>
+                <button class="btn" onclick="act('#135 AUTO-ARMOR')">OTOMATİK ZIRH</button>
+                <button class="btn" onclick="act('#1050 GHOST MINER')">GHOST MINER</button>
+            </div>
+            <div class="card" style="margin-top: 15px; background: #000;">
+                <h2 style="color: white; border: none; font-size: 0.8rem;">İŞLEM RAPORLARI</h2>
+                <div id="logs" class="log-screen">>> Emir bekleniyor...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="page">
+        <div class="card">
+            <h2>🎒 LIVE INVENTORY</h2>
+            <div id="inv" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; text-align: center; color: #555;">
+                <div style="background:#111; padding:15px; border-radius:10px;">?</div>
+                <div style="background:#111; padding:15px; border-radius:10px;">?</div>
+                <div style="background:#111; padding:15px; border-radius:10px;">?</div>
+            </div>
+            <p style="font-size: 0.7rem; color: #666; text-align: center; margin-top: 10px;">Bağlantı kurulunca envanter senkronize olur.</p>
+        </div>
+    </div>
+
+</div>
+
+<div class="dots" id="dots">
+    <div class="dot active"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+</div>
+
+<script>
+    const wrapper = document.getElementById('wrapper');
+    const dots = document.querySelectorAll('.dot');
+    const logs = document.getElementById('logs');
+    let current = 0;
+    let startX = 0;
+
+    // KAYDIRMA KONTROLÜ
+    window.addEventListener('touchstart', e => startX = e.touches[0].clientX);
+    window.addEventListener('touchend', e => {
+        let diff = startX - e.changedTouches[0].clientX;
+        if (Math.abs(diff) > 50) {
+            if (diff > 0 && current < 3) current++;
+            if (diff < 0 && current > 0) current--;
+            wrapper.style.transform = `translateX(-${current * 100}vw)`;
+            dots.forEach((d, i) => d.classList.toggle('active', i === current));
+            if(window.navigator.vibrate) window.navigator.vibrate(10);
+        }
+    });
+
+    // BAŞLATMA FONKSİYONU
+    function startSystem() {
+        const bot = document.getElementById('botName').value;
+        const ip = document.getElementById('srvIP').value;
+        document.getElementById('netStat').innerHTML = `<span style="color:var(--g)">>> ${bot} @ ${ip} BAĞLANIYOR...<br>>> Şifreleme Aktif.</span>`;
+        if(window.navigator.vibrate) window.navigator.vibrate([50, 100, 50]);
+        logs.innerHTML = ">> Sistem Başlatıldı. Emir bekleniyor...";
+    }
+
+    // AKSİYON FONKSİYONU (SEN DOKUNUNCA ÇALIŞIR)
+    function act(mod) {
+        const time = new Date().toLocaleTimeString();
+        logs.innerHTML += `<br><span style="color:var(--g)">[${time}] ${mod} AKTİF EDİLDİ.</span>`;
+        logs.scrollTop = logs.scrollHeight;
+        if(window.navigator.vibrate) window.navigator.vibrate(40);
+        
+        // Modül listesinde durumu güncelle
+        const statusElements = document.querySelectorAll('.mod-status');
+        statusElements[0].innerHTML = "RUNNING";
+        statusElements[0].style.color = "var(--g)";
+    }
+
+    // 1000 MODÜL ÜRETİCİ (SESSİZ BAŞLAR)
+    const matrix = document.getElementById('matrix');
+    for(let i=1; i<=1000; i++){
+        matrix.innerHTML += `<div class="mod-item"><div><b>#${1000+i}</b> MODÜL_${i}<br><i style="color:#444">Yüklenmeye hazır.</i></div><div class="mod-status">WAITING</div></div>`;
+    }
+</script>
+</body>
+</html>
 
