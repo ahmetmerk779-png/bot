@@ -18,31 +18,35 @@ io.on('connection', (socket) => {
         });
 
         bot.on('spawn', () => {
-            socket.emit('log', `>> [✅] TERMINAL AKTIF!`);
-            viewer(bot, { port: 3001, firstPerson: true });
+            socket.emit('log', `>> [✅]登 GİRİŞ YAPILDI! Görüntü Aktif.`);
+            viewer(bot, { port: 3001, firstPerson: true }); // Canlı Görüntü Motoru
             
-            // Canlı Envanter Verisi
+            // Envanter Güncelleme (GUI için)
             setInterval(() => {
                 if(bot.inventory) {
-                    const items = bot.inventory.slots.map((item, index) => ({
-                        slot: index,
-                        name: item ? item.name : 'empty',
-                        count: item ? item.count : 0
-                    }));
-                    socket.emit('inv-full', items);
+                    const items = bot.inventory.items().map(i => ({ name: i.name, count: i.count, slot: i.slot }));
+                    socket.emit('inv-data', items);
                 }
-            }, 1000);
+            }, 2000);
         });
+
+        bot.on('chat', (u, m) => socket.emit('log', `<${u}> ${m}`));
     });
 
-    // FİZİKSEL KONTROLLER
-    socket.on('move', (dir, state) => { if(bot) bot.setControlState(dir, state); });
-    socket.on('jump', (state) => { if(bot) bot.setControlState('jump', state); });
-    socket.on('attack', () => { if(bot) bot.attack(bot.nearestEntity()); });
-    
-    // ENVANTER KONTROLÜ (Eşya Seçme/Atma)
-    socket.on('select-slot', (slot) => { if(bot) bot.setQuickBarSlot(slot); });
-    socket.on('drop-item', () => { if(bot) bot.tossStack(bot.heldItem); });
+    // HAREKET KONTROLÜ
+    socket.on('move', (dir) => {
+        if(!bot) return;
+        const control = dir === 'forward' ? 'forward' : dir === 'back' ? 'back' : dir === 'left' ? 'left' : 'right';
+        bot.setControlState(control, true);
+        setTimeout(() => bot.setControlState(control, false), 500); // 0.5 saniye yürü
+    });
+
+    // ENVANTER / GUI ETKİLEŞİMİ (Eşya Atma/Kullanma)
+    socket.on('use-item', (slot) => {
+        if(bot) bot.activateItem(); // Eldeki eşyayı kullan
+    });
+
+    socket.on('send-chat', (m) => { if(bot) bot.chat(m); });
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Master Core Terminal Aktif!`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Sistem Aktif!`));
