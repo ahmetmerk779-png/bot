@@ -1,16 +1,13 @@
+const express = require('express'); // Hata veren kısım burasıydı, artık yüklü!
 const { Client, IntentsBitField } = require('discord.js');
 const mineflayer = require('mineflayer');
-const express = require('express');
 
-// Render Botu Kapatmasın Diye Küçük Bir Web Sunucusu
 const app = express();
 app.get('/', (req, res) => res.send('Bot Aktif!'));
 app.listen(process.env.PORT || 3000);
 
-// --- AYARLAR ---
 const TOKEN = 'BURAYA_BOT_TOKEN_YAZ';
 const KANAL_ID = 'BURAYA_KANAL_ID_YAZ';
-// ---------------
 
 const client = new Client({ intents: [IntentsBitField.Flags.Guilds, IntentsBitField.Flags.GuildMessages, IntentsBitField.Flags.MessageContent] });
 let bot;
@@ -25,7 +22,7 @@ function baglan() {
 
     bot.on('spawn', () => {
         const c = client.channels.cache.get(KANAL_ID);
-        if(c) c.send("✅ **AesirMC Lobisindeyim!** ASMP giriş için `.asmp` yaz.");
+        if(c) c.send("✅ **Bot Lobiye Girdi!** ASMP için `.asmp` yaz.");
     });
 
     bot.on('chat', (u, m) => {
