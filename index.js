@@ -3,51 +3,46 @@ const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const mineflayer = require('mineflayer');
-const path = require('path');
+const { mineflayer: viewer } = require('prismarine-viewer');
 
 const PORT = process.env.PORT || 3000;
+let bot = null;
 
 app.use(express.static(__dirname));
 
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 io.on('connection', (socket) => {
-    console.log('>> Komuta Merkezi Baglandi (Oppo)');
-
     socket.on('launch-bot', (cfg) => {
-        socket.emit('log', `>> [🔄] ${cfg.ip} adresine baglaniliyor...`);
-        
-        const bot = mineflayer.createBot({
-            host: cfg.ip,
-            username: cfg.name || "MasterBot",
-            version: cfg.version,
-            auth: cfg.auth === 'online' ? 'microsoft' : 'offline'
+        if(bot) bot.quit();
+        bot = mineflayer.createBot({
+            host: cfg.ip, username: cfg.name || "MasterBot", version: cfg.version, auth: 'offline'
         });
 
         bot.on('spawn', () => {
-            socket.emit('log', `>> [✅] Basariyla giris yapildi! Surum: ${bot.version}`);
-        });
-
-        bot.on('chat', (username, msg) => {
-            if(username !== bot.username) {
-                socket.emit('log', `<${username}> ${msg}`);
-                
-                // Yapay Zeka Mantikli Soru Sorma Mekanizmasi
-                if (msg.toLowerCase().includes("selam") || msg.toLowerCase().includes("sa")) {
-                    setTimeout(() => {
-                        const reply = "Selam patron, her sey yolunda mi? Maden mi kazayim yoksa pazar mi tarayayim?";
-                        bot.chat(reply);
-                        socket.emit('log', `AI (Bot): ${reply}`);
-                    }, 2000);
+            socket.emit('log', `>> [✅] TERMINAL AKTIF!`);
+            viewer(bot, { port: 3001, firstPerson: true });
+            
+            // Canlı Envanter Verisi
+            setInterval(() => {
+                if(bot.inventory) {
+                    const items = bot.inventory.slots.map((item, index) => ({
+                        slot: index,
+                        name: item ? item.name : 'empty',
+                        count: item ? item.count : 0
+                    }));
+                    socket.emit('inv-full', items);
                 }
-            }
+            }, 1000);
         });
-
-        bot.on('error', (err) => socket.emit('log', `!! [HATA]: ${err.message}`));
-        bot.on('kicked', (reason) => socket.emit('log', `!! [KICK]: ${reason}`));
     });
+
+    // FİZİKSEL KONTROLLER
+    socket.on('move', (dir, state) => { if(bot) bot.setControlState(dir, state); });
+    socket.on('jump', (state) => { if(bot) bot.setControlState('jump', state); });
+    socket.on('attack', () => { if(bot) bot.attack(bot.nearestEntity()); });
+    
+    // ENVANTER KONTROLÜ (Eşya Seçme/Atma)
+    socket.on('select-slot', (slot) => { if(bot) bot.setQuickBarSlot(slot); });
+    socket.on('drop-item', () => { if(bot) bot.tossStack(bot.heldItem); });
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Master Core Aktif Port: ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Master Core Terminal Aktif!`));
