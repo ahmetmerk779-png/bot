@@ -7,59 +7,96 @@
     <script src="/socket.io/socket.io.js"></script>
     <style>
         :root { --p: #8e44ad; --g: #2ecc71; --b: #3498db; --r: #e74c3c; }
-        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100vh; gap: 4px; padding: 4px; box-sizing: border-box; }
-        .box { border: 1px solid #222; background: #0a0a0a; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; box-shadow: 0 0 10px rgba(0,255,0,0.1); }
-        .head { padding: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; background: #111; border-bottom: 1px solid #333; letter-spacing: 1px; }
-        .m-btn { cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; height: 100vh; overflow: hidden; }
+        
+        /* 4 BÖLMELİ ANA YAPI */
+        .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100vh; gap: 5px; padding: 5px; }
+        .box { border: 1px solid #333; background: #0a0a0a; display: flex; flex-direction: column; border-radius: 12px; position: relative; overflow: hidden; }
+        
+        /* BAŞLIK VE ÜÇ ÇİZGİ */
+        .head { padding: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: bold; background: #111; border-bottom: 1px solid #222; }
+        .m-btn { cursor: pointer; padding: 5px; background: #222; border-radius: 4px; display: flex; flex-direction: column; gap: 3px; z-index: 100; }
         .m-btn span { width: 18px; height: 2px; background: #fff; }
-        .content { flex: 1; padding: 10px; font-size: 11px; overflow-y: auto; color: #ccc; font-family: 'Courier New', monospace; }
-        input, select, button { width: 100%; margin-top: 5px; background: #151515; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 5px; outline: none; }
-        button { background: var(--r); font-weight: bold; border: none; cursor: pointer; text-transform: uppercase; }
-        button:active { transform: scale(0.98); }
-        #chat { border-top: 4px solid var(--p); } #code { border-top: 4px solid var(--g); }
-        #radar { border-top: 4px solid var(--b); } #mods { border-top: 4px solid var(--r); }
-        pre { white-space: pre-wrap; word-wrap: break-word; color: var(--g); }
+
+        /* İÇERİK ALANLARI */
+        .content { flex: 1; padding: 10px; font-size: 12px; overflow-y: auto; color: #ccc; font-family: monospace; }
+        
+        /* GİRİŞ VE BUTONLAR */
+        .controls { padding: 8px; background: #111; border-top: 1px solid #222; }
+        input, select, button { width: 100%; margin-bottom: 5px; background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 8px; font-size: 13px; }
+        button { background: var(--r); font-weight: bold; border: none; cursor: pointer; color: white; }
+        
+        /* RENK DOSYALARI */
+        #chat { border: 2px solid var(--p); } #code { border: 2px solid var(--g); }
+        #radar { border: 2px solid var(--b); } #mods { border: 2px solid var(--r); }
+        
+        /* MESAJ ATMA YERİ SABİTLEME */
+        .chat-input-area { display: flex; gap: 5px; }
+        .chat-input-area input { flex: 1; }
+        .chat-input-area button { width: auto; background: var(--p); }
     </style>
 </head>
 <body>
     <div class="grid">
-        <div id="chat" class="box"><div class="head">🗨️ AI SOHBET <div class="m-btn"><span></span><span></span><span></span></div></div><div id="log" class="content">AI: Baglanti bekleniyor...</div><input type="text" placeholder="AI ile konus..."></div>
-        <div id="code" class="box"><div class="head">💻 AI KODLAMA <div class="m-btn"><span></span><span></span><span></span></div></div><div class="content" id="cArea"><pre>// Otonom Analiz Aktif...</pre></div><button style="background:var(--g)" onclick="gen()">OTONOM KOD URET</button></div>
-        <div id="radar" class="box"><div class="head">🛰️ TAKTIK RADAR <div class="m-btn"><span></span><span></span><span></span></div></div><div class="content" style="display:flex; justify-content:center; align-items:center; color:var(--b);">[ RADAR TARANIYOR ]</div></div>
+        <div id="chat" class="box">
+            <div class="head">🗨️ AI SOHBET <div class="m-btn" onclick="alert('Chat Ayarları')"><span></span><span></span><span></span></div></div>
+            <div id="log" class="content">AI: Sistem Oppo için optimize edildi. Komut beklemede...</div>
+            <div class="controls chat-input-area">
+                <input type="text" id="msgInput" placeholder="Mesaj yaz...">
+                <button onclick="sendChat()">GÖNDER</button>
+            </div>
+        </div>
+
+        <div id="code" class="box">
+            <div class="head">💻 AI KODLAMA <div class="m-btn" onclick="alert('Script Menü')"><span></span><span></span><span></span></div></div>
+            <div class="content" id="cArea"><pre>// Otonom Script Analizi...</pre></div>
+            <div class="controls"><button style="background:var(--g)" onclick="gen()">OTONOM KOD ÜRET</button></div>
+        </div>
+
+        <div id="radar" class="box">
+            <div class="head">🛰️ RADAR <div class="m-btn" onclick="alert('Radar Zoom')"><span></span><span></span><span></span></div></div>
+            <div class="content" style="display:flex; justify-content:center; align-items:center;">[ RADAR AKTİF ]</div>
+        </div>
+
         <div id="mods" class="box">
-            <div class="head">⚙️ MODULLER <div class="m-btn"><span></span><span></span><span></span></div></div>
-            <div class="content">
-                <button style="background:#333; margin-bottom:5px;" onclick="save()">💾 KONFIG KAYDET (OPPO)</button>
-                <input type="text" id="n" placeholder="Bot Ismi">
-                <input type="text" id="i" placeholder="IP: play.server.com">
+            <div class="head">⚙️ MODÜLLER <div class="m-btn" onclick="alert('Modül Ayarları')"><span></span><span></span><span></span></div></div>
+            <div class="content" id="modContent">
+                <button style="background:#444" onclick="save()">💾 KONFİG KAYDET</button>
+                <input type="text" id="n" placeholder="Bot İsmi">
+                <input type="text" id="i" placeholder="Sunucu IP">
                 <select id="v"><option>1.12.2</option><option>1.16.5</option><option>1.20.1</option><option>1.21</option></select>
-                <select id="a"><option value="cracked">Cracked (Offline)</option><option value="online">Online (Premium)</option></select>
+                <select id="a"><option value="cracked">Cracked</option><option value="online">Online</option></select>
                 <button onclick="launch()">🚀 GRAND LAUNCH</button>
             </div>
         </div>
     </div>
+
     <script>
         const socket = io();
         const l = document.getElementById('log');
-        
+
+        // KAYDET & YÜKLE
         function save() {
             const c = { n: document.getElementById('n').value, i: document.getElementById('i').value, v: document.getElementById('v').value, a: document.getElementById('a').value };
             localStorage.setItem('coreCfg', JSON.stringify(c));
-            alert('Konfig Oppo Hafizasina Kaydedildi! 💾');
+            alert('Kaydedildi! 💾');
         }
-
         window.onload = () => {
             const s = JSON.parse(localStorage.getItem('coreCfg'));
             if(s) { document.getElementById('n').value=s.n; document.getElementById('i').value=s.i; document.getElementById('v').value=s.v; document.getElementById('a').value=s.a; }
         };
 
+        // KOMUTLAR
         function launch() {
             socket.emit('launch-bot', { name:document.getElementById('n').value, ip:document.getElementById('i').value, version:document.getElementById('v').value, auth:document.getElementById('a').value });
         }
-
+        function sendChat() {
+            const msg = document.getElementById('msgInput').value;
+            if(msg) { socket.emit('send-chat', msg); document.getElementById('msgInput').value = ''; }
+        }
         socket.on('log', m => { l.innerHTML += `<div>${m}</div>`; l.scrollTop = l.scrollHeight; });
-        function gen() { document.getElementById('cArea').innerText = "// AI: Bypass scripti uretildi.\n// Paket gecikmesi dengelendi."; }
+        function gen() { document.getElementById('cArea').innerText = "// AI: Bypass scripti üretildi."; }
     </script>
 </body>
 </html>
