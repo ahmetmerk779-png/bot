@@ -1,26 +1,37 @@
-// index.js içine eklenecek Radar Mantığı
-setInterval(() => {
-    if (!bot || !bot.entity) return;
-    
-    // Etraftaki blokları tara (32x32 alan)
-    const size = 16;
-    let mapData = [];
-    for (let x = -size; x < size; x++) {
-        for (let z = -size; z < size; z++) {
-            const block = bot.blockAt(bot.entity.position.offset(x, 0, z));
-            // Basit renk kodları: 0: Hava/Boş, 1: Engel, 2: Su/Lav
-            mapData.push(block && block.type !== 0 ? 1 : 0);
-        }
-    }
+const express = require('express');
+const app = express();
+const server = require('http').createServer(app);
+const io = require('socket.io')(server);
+const mineflayer = require('mineflayer');
 
-    socket.emit('radar-data', {
-        map: mapData,
-        yaw: bot.entity.yaw, // Bakış yönü
-        players: Object.values(bot.entities)
-            .filter(e => e.type === 'player' && e !== bot.entity)
-            .map(e => ({ 
-                x: Math.round(e.position.x - bot.entity.position.x), 
-                z: Math.round(e.position.z - bot.entity.position.z) 
-            }))
+app.use(express.static(__dirname));
+
+io.on('connection', (socket) => {
+    let bot;
+    socket.on('launch', (cfg) => {
+        if(bot) { try { bot.quit(); } catch(e){} }
+        bot = mineflayer.createBot({ host: cfg.ip, username: cfg.name || "Master", version: "1.16.5", auth: 'offline' });
+
+        bot.on('spawn', () => {
+            socket.emit('msg', {u: 'SİSTEM', m: '✅ BAĞLANTI KURULDU!'});
+            setInterval(() => {
+                if(!bot || !bot.entity) return;
+                socket.emit('st', {
+                    hp: Math.round(bot.health),
+                    pos: {x:Math.round(bot.entity.position.x), y:Math.round(bot.entity.position.y), z:Math.round(bot.entity.position.z)},
+                    yaw: bot.entity.yaw,
+                    players: Object.values(bot.entities).filter(e => e.type==='player' && e!==bot.entity).map(e => ({x:e.position.x-bot.entity.position.x, z:e.position.z-bot.entity.position.z}))
+                });
+            }, 1200);
+        });
+
+        bot.on('chat', (u, m) => socket.emit('msg', {u, m}));
+        bot.on('kicked', (r) => socket.emit('msg', {u: 'SİSTEM', m: 'Atıldın: ' + r}));
+        bot.on('error', (e) => socket.emit('msg', {u: 'HATA', m: e.message}));
     });
-}, 1500); // Radar her 1.5 saniyede bir güncellenir
+
+    socket.on('send', (m) => { if(bot) bot.chat(m); });
+    socket.on('cmd', (c) => { if(bot) bot.setControlState(c.d, c.s); });
+});
+
+server.listen(process.env.PORT || 3000);
