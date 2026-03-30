@@ -1,97 +1,45 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER CHATCRAFT PRO</title>
-    <script src="/socket.io/socket.io.js"></script>
-    <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: #f4f4f4; color: #333; font-family: sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        
-        /* ÜST PANEL (Resimdeki gibi kırmızı) */
-        .top-bar { background: #e53935; color: white; padding: 15px; display: flex; justify-content: space-between; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        
-        /* CHAT ALANI */
-        #chat { flex: 1; overflow-y: auto; padding: 10px; background: white; font-size: 13px; line-height: 1.6; }
-        .msg { border-bottom: 1px solid #eee; padding: 5px 0; }
+<div id="radar-container" style="background:#000; height:180px; display:flex; justify-content:center; align-items:center; border-bottom:2px solid #e53935; position:relative;">
+    <canvas id="radar" width="160" height="160" style="border:1px solid #333;"></canvas>
+    <div style="position:absolute; top:5px; left:5px; font-size:10px; color:#0f0;">📡 RADAR_V2</div>
+</div>
 
-        /* RADAR & GUI PANELI (Resimdeki gibi üstte açılır) */
-        #gui-overlay { display: none; position: fixed; top: 60px; left: 10px; right: 10px; bottom: 80px; background: white; border-radius: 10px; z-index: 100; overflow-y: auto; padding: 15px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-        .gui-item { padding: 15px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center; }
-        .gui-item:active { background: #f0f0f0; }
+<script>
+    const canvas = document.getElementById('radar');
+    const ctx = canvas.getContext('2d');
 
-        /* ALT KONTROLLER */
-        .footer { background: white; padding: 10px; border-top: 1px solid #ddd; }
-        .input-row { display: flex; gap: 10px; margin-bottom: 10px; }
-        input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 25px; outline: none; }
-        .btn-send { background: #e53935; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-weight: bold; }
+    socket.on('radar-data', d => {
+        ctx.clearRect(0, 0, 160, 160);
+        const size = 32; // 32x32 tarama alanı
+        const pSize = 5; // Piksel boyutu
 
-        .joy { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; }
-        .btn-ctrl { background: #eee; border: 1px solid #ddd; padding: 12px; border-radius: 8px; font-size: 18px; color: #555; }
-        .btn-ctrl:active { background: #e53935; color: white; }
-    </style>
-</head>
-<body>
-    <div class="top-bar">
-        <span onclick="toggleGui()">☰ MENÜ</span>
-        <span id="pos">X:0 Y:0 Z:0</span>
-        <span id="stat">❤ 0</span>
-    </div>
-
-    <div id="chat"><i>Sunucuya bağlanın...</i></div>
-
-    <div id="gui-overlay">
-        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
-            <b id="gui-title">SUNUCU SEÇİCİ</b>
-            <button onclick="toggleGui()" style="background:red; color:white; border:none; border-radius:5px;">KAPAT</button>
-        </div>
-        <div id="gui-content"></div>
-    </div>
-
-    <div class="footer">
-        <div class="input-row">
-            <input type="text" id="mI" placeholder="Mesaj gönder...">
-            <button class="btn-send" onclick="send()">></button>
-        </div>
-        <div class="joy">
-            <button class="btn-ctrl" ontouchstart="cmd('left',true)" ontouchend="cmd('left',false)">◀</button>
-            <button class="btn-ctrl" ontouchstart="cmd('forward',true)" ontouchend="cmd('forward',false)">▲</button>
-            <button class="btn-ctrl" ontouchstart="cmd('back',true)" ontouchend="cmd('back',false)">▼</button>
-            <button class="btn-ctrl" ontouchstart="cmd('right',true)" ontouchend="cmd('right',false)">▶</button>
-            <button class="btn-ctrl" onclick="launch()" style="background:#e53935; color:white;">⚡</button>
-        </div>
-    </div>
-
-    <script>
-        const socket = io();
-        function toggleGui() { const g = document.getElementById('gui-overlay'); g.style.display = g.style.display === 'block' ? 'none' : 'block'; }
-        function launch() { const ip = prompt("Sunucu IP:"); socket.emit('launch', {ip}); }
-        function send() { const m = document.getElementById('mI').value; if(m){socket.emit('send', m); document.getElementById('mI').value='';} }
-        function cmd(dir, state) { socket.emit('cmd', {dir, state}); }
-
-        socket.on('msg', d => {
-            const chat = document.getElementById('chat');
-            chat.innerHTML += `<div class="msg"><b>${d.u}:</b> ${d.m}</div>`;
-            chat.scrollTop = chat.scrollHeight;
+        // Blokları Çiz
+        d.map.forEach((b, i) => {
+            if (b === 1) {
+                const x = (i % size) * pSize;
+                const z = Math.floor(i / size) * pSize;
+                ctx.fillStyle = '#444';
+                ctx.fillRect(x, z, pSize, pSize);
+            }
         });
 
-        socket.on('update', d => {
-            document.getElementById('pos').innerText = `X:${d.pos.x} Y:${d.pos.y} Z:${d.pos.z}`;
-            document.getElementById('stat').innerText = `❤ ${d.hp}`;
+        // Diğer Oyuncuları Çiz (Kırmızı Noktalar)
+        d.players.forEach(p => {
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(80 + (p.x * 2), 80 + (p.z * 2), 3, 0, Math.PI * 2);
+            ctx.fill();
         });
 
-        socket.on('open-gui', d => {
-            document.getElementById('gui-title').innerText = d.title;
-            const content = document.getElementById('gui-content');
-            content.innerHTML = d.items.map(item => `
-                <div class="gui-item" onclick="socket.emit('gui-click', ${item.slot}); toggleGui();">
-                    <span>${item.name}</span>
-                    <span style="color:#888; font-size:10px;">x${item.count}</span>
-                </div>
-            `).join('');
-            document.getElementById('gui-overlay').style.display = 'block';
-        });
-    </script>
-</body>
-</html>
+        // Botun Kendisi (Merkezdeki Yeşil Ok)
+        ctx.fillStyle = '#0f0';
+        ctx.save();
+        ctx.translate(80, 80);
+        ctx.rotate(d.yaw + Math.PI); // Botun baktığı yöne çevir
+        ctx.beginPath();
+        ctx.moveTo(0, -6);
+        ctx.lineTo(-4, 4);
+        ctx.lineTo(4, 4);
+        ctx.fill();
+        ctx.restore();
+    });
+</script>
