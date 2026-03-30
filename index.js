@@ -4,47 +4,49 @@ const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const mineflayer = require('mineflayer');
 
-const PORT = process.env.PORT || 3000;
-let bot = null;
-
 app.use(express.static(__dirname));
 
 io.on('connection', (socket) => {
-    socket.on('launch-bot', (cfg) => {
-        if(bot) { try { bot.quit(); } catch(e) {} }
-        
+    let bot;
+
+    socket.on('launch', (cfg) => {
+        if(bot) bot.quit();
         bot = mineflayer.createBot({
-            host: cfg.ip,
-            username: cfg.name || "MasterBot",
-            version: cfg.version || "1.16.5",
-            auth: 'offline'
+            host: cfg.ip, username: cfg.name || "Master", version: "1.16.5", auth: 'offline'
         });
 
         bot.on('spawn', () => {
-            socket.emit('log', `>> [✅] SİSTEM AKTİF! Canvas hatası bypass edildi.`);
+            socket.emit('log', '>> [✅] Sunucuya Bağlanıldı.');
             
-            // Veri Akışı (Görüntü yerine canlı veri paneli)
+            // Canlı Radar & Durum Verisi
             setInterval(() => {
-                if(bot && bot.entity) {
-                    const data = {
-                        pos: { x: Math.round(bot.entity.position.x), y: Math.round(bot.entity.position.y), z: Math.round(bot.entity.position.z) },
-                        hp: Math.round(bot.health),
-                        food: Math.round(bot.food),
-                        near: Object.values(bot.entities)
-                            .filter(e => e.type === 'player' && e.username !== bot.username)
-                            .map(e => e.username)
-                    };
-                    socket.emit('bot-stats', data);
-                }
+                if(!bot.entity) return;
+                socket.emit('update', {
+                    hp: Math.round(bot.health),
+                    food: Math.round(bot.food),
+                    pos: { x: Math.round(bot.entity.position.x), y: Math.round(bot.entity.position.y), z: Math.round(bot.entity.position.z) },
+                    players: Object.values(bot.players).map(p => p.username)
+                });
             }, 1000);
         });
 
-        bot.on('chat', (u, m) => socket.emit('log', `<b style="color:#8e44ad">${u}</b>: ${m}`));
-        bot.on('error', (err) => socket.emit('log', `!! HATA: ${err.message}`));
+        // ChatCraft'taki gibi GUI (Menü) yakalama
+        bot.on('windowOpen', (window) => {
+            const items = window.slots.map((item, i) => ({
+                slot: i,
+                name: item ? item.displayName : 'Boş',
+                count: item ? item.count : 0
+            }));
+            socket.emit('open-gui', { title: window.title, items });
+        });
+
+        bot.on('chat', (u, m) => socket.emit('msg', {u, m}));
     });
 
-    socket.on('move', (d) => { if(bot) bot.setControlState(d.dir, d.state); });
-    socket.on('send-chat', (m) => { if(bot) bot.chat(m); });
+    // Menüdeki eşyaya tıklama
+    socket.on('gui-click', (slot) => { if(bot && bot.currentWindow) bot.clickWindow(slot, 0, 0); });
+    socket.on('cmd', (d) => { if(bot) bot.setControlState(d.dir, d.state); });
+    socket.on('send', (m) => { if(bot) bot.chat(m); });
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Aktif port: ${PORT}`));
+server.listen(process.env.PORT || 3000);
