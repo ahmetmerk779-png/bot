@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MASTER CORE v2000+</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        :root { --p: #8e44ad; --g: #2ecc71; --b: #3498db; --r: #e74c3c; }
+        body { background: #000; color: #fff; font-family: 'Segoe UI', sans-serif; margin: 0; overflow: hidden; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100vh; gap: 4px; padding: 4px; box-sizing: border-box; }
+        .box { border: 1px solid #222; background: #0a0a0a; display: flex; flex-direction: column; border-radius: 10px; overflow: hidden; box-shadow: 0 0 10px rgba(0,255,0,0.1); }
+        .head { padding: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 10px; background: #111; border-bottom: 1px solid #333; letter-spacing: 1px; }
+        .m-btn { cursor: pointer; display: flex; flex-direction: column; gap: 3px; padding: 5px; }
+        .m-btn span { width: 18px; height: 2px; background: #fff; }
+        .content { flex: 1; padding: 10px; font-size: 11px; overflow-y: auto; color: #ccc; font-family: 'Courier New', monospace; }
+        input, select, button { width: 100%; margin-top: 5px; background: #151515; border: 1px solid #333; color: #fff; padding: 10px; border-radius: 5px; outline: none; }
+        button { background: var(--r); font-weight: bold; border: none; cursor: pointer; text-transform: uppercase; }
+        button:active { transform: scale(0.98); }
+        #chat { border-top: 4px solid var(--p); } #code { border-top: 4px solid var(--g); }
+        #radar { border-top: 4px solid var(--b); } #mods { border-top: 4px solid var(--r); }
+        pre { white-space: pre-wrap; word-wrap: break-word; color: var(--g); }
+    </style>
+</head>
+<body>
+    <div class="grid">
+        <div id="chat" class="box"><div class="head">🗨️ AI SOHBET <div class="m-btn"><span></span><span></span><span></span></div></div><div id="log" class="content">AI: Baglanti bekleniyor...</div><input type="text" placeholder="AI ile konus..."></div>
+        <div id="code" class="box"><div class="head">💻 AI KODLAMA <div class="m-btn"><span></span><span></span><span></span></div></div><div class="content" id="cArea"><pre>// Otonom Analiz Aktif...</pre></div><button style="background:var(--g)" onclick="gen()">OTONOM KOD URET</button></div>
+        <div id="radar" class="box"><div class="head">🛰️ TAKTIK RADAR <div class="m-btn"><span></span><span></span><span></span></div></div><div class="content" style="display:flex; justify-content:center; align-items:center; color:var(--b);">[ RADAR TARANIYOR ]</div></div>
+        <div id="mods" class="box">
+            <div class="head">⚙️ MODULLER <div class="m-btn"><span></span><span></span><span></span></div></div>
+            <div class="content">
+                <button style="background:#333; margin-bottom:5px;" onclick="save()">💾 KONFIG KAYDET (OPPO)</button>
+                <input type="text" id="n" placeholder="Bot Ismi">
+                <input type="text" id="i" placeholder="IP: play.server.com">
+                <select id="v"><option>1.12.2</option><option>1.16.5</option><option>1.20.1</option><option>1.21</option></select>
+                <select id="a"><option value="cracked">Cracked (Offline)</option><option value="online">Online (Premium)</option></select>
+                <button onclick="launch()">🚀 GRAND LAUNCH</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        const socket = io();
+        const l = document.getElementById('log');
+        
+        function save() {
+            const c = { n: document.getElementById('n').value, i: document.getElementById('i').value, v: document.getElementById('v').value, a: document.getElementById('a').value };
+            localStorage.setItem('coreCfg', JSON.stringify(c));
+            alert('Konfig Oppo Hafizasina Kaydedildi! 💾');
+        }
+
+        window.onload = () => {
+            const s = JSON.parse(localStorage.getItem('coreCfg'));
+            if(s) { document.getElementById('n').value=s.n; document.getElementById('i').value=s.i; document.getElementById('v').value=s.v; document.getElementById('a').value=s.a; }
+        };
+
+        function launch() {
+            socket.emit('launch-bot', { name:document.getElementById('n').value, ip:document.getElementById('i').value, version:document.getElementById('v').value, auth:document.getElementById('a').value });
+        }
+
+        socket.on('log', m => { l.innerHTML += `<div>${m}</div>`; l.scrollTop = l.scrollHeight; });
+        function gen() { document.getElementById('cArea').innerText = "// AI: Bypass scripti uretildi.\n// Paket gecikmesi dengelendi."; }
+    </script>
+</body>
+</html>
