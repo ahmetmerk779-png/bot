@@ -1,52 +1,26 @@
-const express = require('express');
-const app = express();
-const server = require('http').createServer(app);
-const io = require('socket.io')(server);
-const mineflayer = require('mineflayer');
+// index.js içine eklenecek Radar Mantığı
+setInterval(() => {
+    if (!bot || !bot.entity) return;
+    
+    // Etraftaki blokları tara (32x32 alan)
+    const size = 16;
+    let mapData = [];
+    for (let x = -size; x < size; x++) {
+        for (let z = -size; z < size; z++) {
+            const block = bot.blockAt(bot.entity.position.offset(x, 0, z));
+            // Basit renk kodları: 0: Hava/Boş, 1: Engel, 2: Su/Lav
+            mapData.push(block && block.type !== 0 ? 1 : 0);
+        }
+    }
 
-app.use(express.static(__dirname));
-
-io.on('connection', (socket) => {
-    let bot;
-
-    socket.on('launch', (cfg) => {
-        if(bot) bot.quit();
-        bot = mineflayer.createBot({
-            host: cfg.ip, username: cfg.name || "Master", version: "1.16.5", auth: 'offline'
-        });
-
-        bot.on('spawn', () => {
-            socket.emit('log', '>> [✅] Sunucuya Bağlanıldı.');
-            
-            // Canlı Radar & Durum Verisi
-            setInterval(() => {
-                if(!bot.entity) return;
-                socket.emit('update', {
-                    hp: Math.round(bot.health),
-                    food: Math.round(bot.food),
-                    pos: { x: Math.round(bot.entity.position.x), y: Math.round(bot.entity.position.y), z: Math.round(bot.entity.position.z) },
-                    players: Object.values(bot.players).map(p => p.username)
-                });
-            }, 1000);
-        });
-
-        // ChatCraft'taki gibi GUI (Menü) yakalama
-        bot.on('windowOpen', (window) => {
-            const items = window.slots.map((item, i) => ({
-                slot: i,
-                name: item ? item.displayName : 'Boş',
-                count: item ? item.count : 0
-            }));
-            socket.emit('open-gui', { title: window.title, items });
-        });
-
-        bot.on('chat', (u, m) => socket.emit('msg', {u, m}));
+    socket.emit('radar-data', {
+        map: mapData,
+        yaw: bot.entity.yaw, // Bakış yönü
+        players: Object.values(bot.entities)
+            .filter(e => e.type === 'player' && e !== bot.entity)
+            .map(e => ({ 
+                x: Math.round(e.position.x - bot.entity.position.x), 
+                z: Math.round(e.position.z - bot.entity.position.z) 
+            }))
     });
-
-    // Menüdeki eşyaya tıklama
-    socket.on('gui-click', (slot) => { if(bot && bot.currentWindow) bot.clickWindow(slot, 0, 0); });
-    socket.on('cmd', (d) => { if(bot) bot.setControlState(d.dir, d.state); });
-    socket.on('send', (m) => { if(bot) bot.chat(m); });
-});
-
-server.listen(process.env.PORT || 3000);
+}, 1500); // Radar her 1.5 saniyede bir güncellenir
