@@ -1,45 +1,94 @@
-<div id="radar-container" style="background:#000; height:180px; display:flex; justify-content:center; align-items:center; border-bottom:2px solid #e53935; position:relative;">
-    <canvas id="radar" width="160" height="160" style="border:1px solid #333;"></canvas>
-    <div style="position:absolute; top:5px; left:5px; font-size:10px; color:#0f0;">📡 RADAR_V2</div>
-</div>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MASTER V3</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { background: #f5f5f5; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: #d32f2f; color: white; padding: 12px; font-weight: bold; display: flex; justify-content: space-between; font-size: 13px; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .tabs { display: flex; background: #fff; border-bottom: 1px solid #ddd; }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: none; font-weight: bold; color: #888; transition: 0.3s; }
+        .tab-btn.active { color: #d32f2f; border-bottom: 3px solid #d32f2f; }
+        .content { flex: 1; display: none; overflow-y: auto; background: white; }
+        .content.active { display: block; }
+        #chat-box { padding: 10px; font-size: 13px; line-height: 1.5; }
+        #radar-wrap { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        canvas { background: #fff; border: 2px solid #ddd; border-radius: 10px; }
+        .footer { background: #fff; border-top: 1px solid #ddd; padding: 10px; }
+        .joy { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 8px; }
+        .btn { background: #eee; border: 1px solid #ccc; padding: 12px; border-radius: 5px; text-align: center; font-weight: bold; }
+        .btn:active { background: #d32f2f; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <span id="pos">X:0 Y:0 Z:0</span>
+        <span id="hp">❤ --</span>
+    </div>
 
-<script>
-    const canvas = document.getElementById('radar');
-    const ctx = canvas.getContext('2d');
+    <div class="tabs">
+        <button class="tab-btn active" onclick="tab(event, 'c-tab')">SOHBET</button>
+        <button class="tab-btn" onclick="tab(event, 'r-tab')">RADAR</button>
+    </div>
 
-    socket.on('radar-data', d => {
-        ctx.clearRect(0, 0, 160, 160);
-        const size = 32; // 32x32 tarama alanı
-        const pSize = 5; // Piksel boyutu
+    <div id="c-tab" class="content active"><div id="chat-box"></div></div>
+    <div id="r-tab" class="content">
+        <div id="radar-wrap">
+            <canvas id="radar" width="200" height="200"></canvas>
+            <div style="margin-top:10px; color:#d32f2f; font-weight:bold;">RADAR AKTİF</div>
+        </div>
+    </div>
 
-        // Blokları Çiz
-        d.map.forEach((b, i) => {
-            if (b === 1) {
-                const x = (i % size) * pSize;
-                const z = Math.floor(i / size) * pSize;
-                ctx.fillStyle = '#444';
-                ctx.fillRect(x, z, pSize, pSize);
-            }
+    <div class="footer">
+        <div style="display:flex; gap:5px;">
+            <input type="text" id="mI" style="flex:1; padding:12px; border:1px solid #ddd; border-radius:5px;" placeholder="Mesaj..." onkeydown="if(event.key==='Enter')send()">
+            <button onclick="send()" style="background:#d32f2f; color:white; border:none; padding:0 20px; border-radius:5px;">></button>
+        </div>
+        <div class="joy">
+            <button class="btn" ontouchstart="cmd('left',true)" ontouchend="cmd('left',false)">◀</button>
+            <button class="btn" ontouchstart="cmd('forward',true)" ontouchend="cmd('forward',false)">▲</button>
+            <button class="btn" ontouchstart="cmd('back',true)" ontouchend="cmd('back',false)">▼</button>
+            <button class="btn" ontouchstart="cmd('right',true)" ontouchend="cmd('right',false)">▶</button>
+            <button class="btn" onclick="launch()" style="background:#d32f2f; color:white;">BAĞLAN</button>
+        </div>
+    </div>
+
+    <script>
+        const socket = io();
+        const ctx = document.getElementById('radar').getContext('2d');
+
+        function tab(e, n) {
+            let cs = document.getElementsByClassName("content");
+            for (let i=0; i<cs.length; i++) cs[i].style.display = "none";
+            let ts = document.getElementsByClassName("tab-btn");
+            for (let i=0; i<ts.length; i++) ts[i].classList.remove("active");
+            document.getElementById(n).style.display = "block";
+            e.currentTarget.classList.add("active");
+        }
+
+        function launch() { const ip = prompt("IP:"); if(ip) socket.emit('launch', {ip}); }
+        function send() { const i=document.getElementById('mI'); if(i.value){socket.emit('send',i.value); i.value='';} }
+        function cmd(d, s) { socket.emit('cmd', {d, s}); }
+
+        socket.on('msg', d => {
+            const b = document.getElementById('chat-box');
+            b.innerHTML += `<div><b>${d.u}:</b> ${d.m}</div>`;
+            b.scrollTop = b.scrollHeight;
         });
 
-        // Diğer Oyuncuları Çiz (Kırmızı Noktalar)
-        d.players.forEach(p => {
-            ctx.fillStyle = 'red';
-            ctx.beginPath();
-            ctx.arc(80 + (p.x * 2), 80 + (p.z * 2), 3, 0, Math.PI * 2);
-            ctx.fill();
+        socket.on('st', d => {
+            document.getElementById('pos').innerText = `X:${d.pos.x} Y:${d.pos.y} Z:${d.pos.z}`;
+            document.getElementById('hp').innerText = `❤ ${d.hp}`;
+            ctx.clearRect(0,0,200,200);
+            // Oyuncular
+            d.players.forEach(p => { ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(100+(p.x*4), 100+(p.z*4), 4, 0, Math.PI*2); ctx.fill(); });
+            // Sen
+            ctx.fillStyle='#d32f2f'; ctx.save(); ctx.translate(100,100); ctx.rotate(d.yaw+Math.PI);
+            ctx.beginPath(); ctx.moveTo(0,-10); ctx.lineTo(-6,6); ctx.lineTo(6,6); ctx.fill(); ctx.restore();
         });
-
-        // Botun Kendisi (Merkezdeki Yeşil Ok)
-        ctx.fillStyle = '#0f0';
-        ctx.save();
-        ctx.translate(80, 80);
-        ctx.rotate(d.yaw + Math.PI); // Botun baktığı yöne çevir
-        ctx.beginPath();
-        ctx.moveTo(0, -6);
-        ctx.lineTo(-4, 4);
-        ctx.lineTo(4, 4);
-        ctx.fill();
-        ctx.restore();
-    });
-</script>
+    </script>
+</body>
+</html>
