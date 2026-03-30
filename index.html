@@ -3,100 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MASTER CORE v2000+</title>
+    <title>MASTER TERMINAL V5</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        :root { --p: #8e44ad; --g: #2ecc71; --b: #3498db; --r: #e74c3c; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; height: 100vh; overflow: hidden; }
+        :root { --p: #8e44ad; --g: #2ecc71; --b: #3498db; --gray: #222; }
+        body { background: #000; color: #fff; font-family: sans-serif; margin: 0; overflow: hidden; user-select: none; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1.5fr 1fr; height: 100vh; gap: 2px; }
+        .box { background: #0a0a0a; border: 1px solid #333; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* 4 BÖLMELİ ANA YAPI */
-        .grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; height: 100vh; gap: 5px; padding: 5px; }
-        .box { border: 1px solid #333; background: #0a0a0a; display: flex; flex-direction: column; border-radius: 12px; position: relative; overflow: hidden; }
-        
-        /* BAŞLIK VE ÜÇ ÇİZGİ */
-        .head { padding: 12px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; font-weight: bold; background: #111; border-bottom: 1px solid #222; }
-        .m-btn { cursor: pointer; padding: 5px; background: #222; border-radius: 4px; display: flex; flex-direction: column; gap: 3px; z-index: 100; }
-        .m-btn span { width: 18px; height: 2px; background: #fff; }
+        /* OYUN EKRANI */
+        iframe { width: 100%; height: 100%; border: none; }
 
-        /* İÇERİK ALANLARI */
-        .content { flex: 1; padding: 10px; font-size: 12px; overflow-y: auto; color: #ccc; font-family: monospace; }
-        
-        /* GİRİŞ VE BUTONLAR */
-        .controls { padding: 8px; background: #111; border-top: 1px solid #222; }
-        input, select, button { width: 100%; margin-bottom: 5px; background: #1a1a1a; border: 1px solid #444; color: #fff; padding: 12px; border-radius: 8px; font-size: 13px; }
-        button { background: var(--r); font-weight: bold; border: none; cursor: pointer; color: white; }
-        
-        /* RENK DOSYALARI */
-        #chat { border: 2px solid var(--p); } #code { border: 2px solid var(--g); }
-        #radar { border: 2px solid var(--b); } #mods { border: 2px solid var(--r); }
-        
-        /* MESAJ ATMA YERİ SABİTLEME */
-        .chat-input-area { display: flex; gap: 5px; }
-        .chat-input-area input { flex: 1; }
-        .chat-input-area button { width: auto; background: var(--p); }
+        /* JOYSTICK & HAREKET */
+        .controls { display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; padding: 20px; align-self: center; }
+        .btn { background: var(--gray); color: #fff; border: 2px solid #444; padding: 15px; border-radius: 10px; font-weight: bold; text-align: center; }
+        .btn:active { background: #555; }
+
+        /* ENVANTER IZGARASI */
+        .inv-grid { display: grid; grid-template-columns: repeat(9, 1fr); gap: 2px; padding: 5px; background: #111; height: 100%; overflow-y: auto; }
+        .slot { background: #333; border: 1px solid #555; aspect-ratio: 1/1; display: flex; align-items: center; justify-content: center; font-size: 8px; position: relative; }
+        .slot span { position: absolute; bottom: 1px; right: 1px; background: rgba(0,0,0,0.5); font-size: 7px; }
+        .active-slot { border: 2px solid var(--g); background: #444; }
+
+        /* SOHBET */
+        #log { flex: 1; padding: 5px; font-size: 10px; overflow-y: auto; color: #ccc; }
     </style>
 </head>
 <body>
     <div class="grid">
-        <div id="chat" class="box">
-            <div class="head">🗨️ AI SOHBET <div class="m-btn" onclick="alert('Chat Ayarları')"><span></span><span></span><span></span></div></div>
-            <div id="log" class="content">AI: Sistem Oppo için optimize edildi. Komut beklemede...</div>
-            <div class="controls chat-input-area">
-                <input type="text" id="msgInput" placeholder="Mesaj yaz...">
-                <button onclick="sendChat()">GÖNDER</button>
+        <div class="box" style="grid-column: 1 / 3;">
+            <iframe id="v" src=""></iframe> </div>
+
+        <div class="box">
+            <div id="log">Sohbet Bekleniyor...</div>
+            <div style="display:flex;"><input type="text" id="m" style="flex:1; background:#111; color:#fff; border:1px solid #333;"><button onclick="send()">></button></div>
+            <div class="inv-grid" id="inv"></div> </div>
+
+        <div class="box">
+            <div class="controls">
+                <div></div><div class="btn" ontouchstart="mv('forward',true)" ontouchend="mv('forward',false)">▲</div><div></div>
+                <div class="btn" ontouchstart="mv('left',true)" ontouchend="mv('left',false)">◀</div>
+                <div class="btn" onclick="socket.emit('jump',true);setTimeout(()=>socket.emit('jump',false),200)">JMP</div>
+                <div class="btn" ontouchstart="mv('right',true)" ontouchend="mv('right',false)">▶</div>
+                <div class="btn" onclick="socket.emit('attack')">HIT</div>
+                <div class="btn" ontouchstart="mv('back',true)" ontouchend="mv('back',false)">▼</div>
+                <div class="btn" onclick="socket.emit('drop-item')" style="background:var(--r)">DRP</div>
             </div>
-        </div>
-
-        <div id="code" class="box">
-            <div class="head">💻 AI KODLAMA <div class="m-btn" onclick="alert('Script Menü')"><span></span><span></span><span></span></div></div>
-            <div class="content" id="cArea"><pre>// Otonom Script Analizi...</pre></div>
-            <div class="controls"><button style="background:var(--g)" onclick="gen()">OTONOM KOD ÜRET</button></div>
-        </div>
-
-        <div id="radar" class="box">
-            <div class="head">🛰️ RADAR <div class="m-btn" onclick="alert('Radar Zoom')"><span></span><span></span><span></span></div></div>
-            <div class="content" style="display:flex; justify-content:center; align-items:center;">[ RADAR AKTİF ]</div>
-        </div>
-
-        <div id="mods" class="box">
-            <div class="head">⚙️ MODÜLLER <div class="m-btn" onclick="alert('Modül Ayarları')"><span></span><span></span><span></span></div></div>
-            <div class="content" id="modContent">
-                <button style="background:#444" onclick="save()">💾 KONFİG KAYDET</button>
-                <input type="text" id="n" placeholder="Bot İsmi">
-                <input type="text" id="i" placeholder="Sunucu IP">
-                <select id="v"><option>1.12.2</option><option>1.16.5</option><option>1.20.1</option><option>1.21</option></select>
-                <select id="a"><option value="cracked">Cracked</option><option value="online">Online</option></select>
-                <button onclick="launch()">🚀 GRAND LAUNCH</button>
-            </div>
+            <button onclick="launch()" style="background:var(--g); border:none; color:#fff; padding:10px;">SUNUCUYA BAĞLAN</button>
         </div>
     </div>
 
     <script>
         const socket = io();
-        const l = document.getElementById('log');
+        function mv(d,s) { socket.emit('move', d, s); }
+        function send() { socket.emit('send-chat', document.getElementById('m').value); document.getElementById('m').value=''; }
+        function launch() { socket.emit('launch-bot', {ip: prompt('Sunucu IP:'), version: '1.16.5'}); }
 
-        // KAYDET & YÜKLE
-        function save() {
-            const c = { n: document.getElementById('n').value, i: document.getElementById('i').value, v: document.getElementById('v').value, a: document.getElementById('a').value };
-            localStorage.setItem('coreCfg', JSON.stringify(c));
-            alert('Kaydedildi! 💾');
-        }
-        window.onload = () => {
-            const s = JSON.parse(localStorage.getItem('coreCfg'));
-            if(s) { document.getElementById('n').value=s.n; document.getElementById('i').value=s.i; document.getElementById('v').value=s.v; document.getElementById('a').value=s.a; }
-        };
+        socket.on('inv-full', d => {
+            const container = document.getElementById('inv');
+            container.innerHTML = d.map(s => `
+                <div class="slot ${s.slot < 9 ? 'active-slot' : ''}" onclick="socket.emit('select-slot', ${s.slot})">
+                    ${s.name !== 'empty' ? s.name.substring(0,3) : ''}
+                    <span>${s.count > 0 ? s.count : ''}</span>
+                </div>
+            `).join('');
+        });
 
-        // KOMUTLAR
-        function launch() {
-            socket.emit('launch-bot', { name:document.getElementById('n').value, ip:document.getElementById('i').value, version:document.getElementById('v').value, auth:document.getElementById('a').value });
-        }
-        function sendChat() {
-            const msg = document.getElementById('msgInput').value;
-            if(msg) { socket.emit('send-chat', msg); document.getElementById('msgInput').value = ''; }
-        }
-        socket.on('log', m => { l.innerHTML += `<div>${m}</div>`; l.scrollTop = l.scrollHeight; });
-        function gen() { document.getElementById('cArea').innerText = "// AI: Bypass scripti üretildi."; }
+        socket.on('log', m => { const l=document.getElementById('log'); l.innerHTML+=`<div>${m}</div>`; l.scrollTop=l.scrollHeight; });
     </script>
 </body>
 </html>
