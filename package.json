@@ -1,17 +1,12 @@
 {
-  "name": "master-chatcraft-pro",
-  "version": "2.5.0",
-  "description": "Minecraft Mobile Web Client - Master Edition with GUI & Radar",
+  "name": "master-core-v3",
+  "version": "3.0.0",
   "main": "index.js",
-  "scripts": {
-    "start": "node index.js"
-  },
+  "scripts": { "start": "node index.js" },
   "dependencies": {
     "express": "^4.18.2",
     "mineflayer": "^4.20.0",
     "socket.io": "^4.7.2"
   },
-  "engines": {
-    "node": ">=16.0.0"
-  }
+  "engines": { "node": ">=16" }
 }
