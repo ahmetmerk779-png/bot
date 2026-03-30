@@ -6,40 +6,47 @@ const mineflayer = require('mineflayer');
 
 app.use(express.static(__dirname));
 
+// Örnek sunucu listesi (Resim 1000264944'teki gibi)
+const servers = [
+    { name: 'IZTECHMC', ip: 'play.iztechmc.com.tr', ver: '1.20.1', desc: 'SAKURA SMP | LANDCLAIM' },
+    { name: 'aesirmc', ip: 'play.aesirmc.com', ver: '1.16.5', desc: 'MMO FACTION YENİ SEZON!' }
+];
+
 io.on('connection', (socket) => {
+    // Ana sayfaya sunucu listesini gönder
+    socket.emit('server-list', servers);
+
     let bot;
     socket.on('launch', (cfg) => {
         if(bot) { try { bot.quit(); } catch(e){} }
-        bot = mineflayer.createBot({ host: cfg.ip, username: cfg.name || "MasterBot", version: "1.16.5", auth: 'offline' });
+        bot = mineflayer.createBot({ 
+            host: cfg.ip, 
+            username: cfg.name || "Master", 
+            version: cfg.ver || "1.16.5", 
+            auth: 'offline' 
+        });
 
         bot.on('spawn', () => {
-            socket.emit('sys', 'Sunucuya giriş yapıldı!');
+            socket.emit('sys-msg', '✅ ' + cfg.ip + ' adresine bağlanıldı!');
             setInterval(() => {
                 if(!bot || !bot.entity) return;
-                socket.emit('st', {
+                socket.emit('status-update', {
                     hp: Math.round(bot.health),
-                    pos: `X:${Math.round(bot.entity.position.x)} Y:${Math.round(bot.entity.position.y)} Z:${Math.round(bot.entity.position.z)}`,
-                    yaw: bot.entity.yaw,
-                    players: Object.values(bot.players).map(p => p.username),
-                    inventory: bot.inventory.slots.filter(s => s).map(s => ({ name: s.displayName, count: s.count }))
+                    pos: `X:${bot.entity.position.x.toFixed(2)} Y:${bot.entity.position.y.toFixed(2)} Z:${bot.entity.position.z.toFixed(2)}`,
+                    players: Object.values(bot.players).map(p => p.username)
                 });
             }, 1000);
         });
 
-        // ChatCraft gibi Menüleri (Resim 1000264950) yakalar
-        bot.on('windowOpen', (w) => {
-            const items = w.slots.filter(s => s).map(s => ({ slot: s.slot, name: s.displayName, count: s.count }));
-            socket.emit('gui', { title: w.title, items });
+        bot.on('chat', (username, message) => {
+            socket.emit('new-msg', { u: username, m: message });
         });
 
-        bot.on('chat', (u, m) => socket.emit('msg', {u, m}));
-        bot.on('error', (e) => socket.emit('sys', 'Hata: ' + e.message));
-        bot.on('kicked', (r) => socket.emit('sys', 'Atıldın: ' + r));
+        bot.on('kicked', (reason) => socket.emit('sys-msg', '❌ Atıldın: ' + reason));
+        bot.on('error', (err) => socket.emit('sys-msg', '⚠️ Hata: ' + err.message));
     });
 
-    socket.on('send', (m) => { if(bot) bot.chat(m); });
-    socket.on('cmd', (c) => { if(bot) bot.setControlState(c.d, c.s); });
-    socket.on('gui-click', (s) => { if(bot && bot.currentWindow) bot.clickWindow(s, 0, 0); });
+    socket.on('send-chat', (msg) => { if(bot) bot.chat(msg); });
 });
 
 server.listen(process.env.PORT || 3000);
