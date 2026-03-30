@@ -3,15 +3,6 @@ const app = express();
 const server = require('http').createServer(app);
 const io = require('socket.io')(server);
 const mineflayer = require('mineflayer');
-const path = require('path');
-
-// Hata önleyici içe aktarma
-let viewer;
-try {
-    viewer = require('prismarine-viewer').mineflayer;
-} catch (e) {
-    console.log("Viewer yuklenirken hata olustu, gorsel devre disi.");
-}
 
 const PORT = process.env.PORT || 3000;
 let bot = null;
@@ -30,25 +21,30 @@ io.on('connection', (socket) => {
         });
 
         bot.on('spawn', () => {
-            socket.emit('log', `>> [✅] BOT AKTIF!`);
+            socket.emit('log', `>> [✅] SİSTEM AKTİF! Canvas hatası bypass edildi.`);
             
-            // Eğer kütüphane bulunduysa yayını başlat
-            if(viewer && bot) {
-                try {
-                    viewer(bot, { port: 3007, firstPerson: true });
-                    socket.emit('log', `>> [📺] Goruntu motoru 3007 portunda hazir.`);
-                } catch(e) {
-                    socket.emit('log', `!! Goruntu motoru baslatilamadi.`);
+            // Veri Akışı (Görüntü yerine canlı veri paneli)
+            setInterval(() => {
+                if(bot && bot.entity) {
+                    const data = {
+                        pos: { x: Math.round(bot.entity.position.x), y: Math.round(bot.entity.position.y), z: Math.round(bot.entity.position.z) },
+                        hp: Math.round(bot.health),
+                        food: Math.round(bot.food),
+                        near: Object.values(bot.entities)
+                            .filter(e => e.type === 'player' && e.username !== bot.username)
+                            .map(e => e.username)
+                    };
+                    socket.emit('bot-stats', data);
                 }
-            }
+            }, 1000);
         });
 
-        bot.on('chat', (u, m) => socket.emit('log', `<${u}> ${m}`));
-        bot.on('error', (err) => socket.emit('log', `!! Hata: ${err.message}`));
+        bot.on('chat', (u, m) => socket.emit('log', `<b style="color:#8e44ad">${u}</b>: ${m}`));
+        bot.on('error', (err) => socket.emit('log', `!! HATA: ${err.message}`));
     });
 
     socket.on('move', (d) => { if(bot) bot.setControlState(d.dir, d.state); });
     socket.on('send-chat', (m) => { if(bot) bot.chat(m); });
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`Sunucu aktif: ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Aktif port: ${PORT}`));
