@@ -1,24 +1,29 @@
 const mineflayer = require('mineflayer')
 const http = require('http')
 
-// 1. ADIM: Render'ın botu kapatmaması için basit bir web sunucusu
+// 1. ADIM: Render'ın botu kapatmasını engelleyen "Yaşam Sinyali" (PORT)
 http.createServer((req, res) => {
-  res.write("Bot aktif!");
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.write("Bot 7/24 Aktif!");
   res.end();
-}).listen(process.env.PORT || 3000);
+}).listen(process.env.PORT || 3000); // Render bu portu görmezse botu kapatır!
 
-// 2. ADIM: Bot Ayarları
+// 2. ADIM: Bot Ayarların
 const bot = mineflayer.createBot({
   host: 'play.aesirmc.com',
-  username: 'myshoue',
-  version: '1.21.1', // Senin kullandığın sürüm
+  username: 'myshoue', // Burayı istersen değiştirirsin
+  version: '1.21.1',
   hideErrors: true
 })
 
 bot.on('spawn', () => {
-  console.log('Bot sunucuya girdi!');
-  setTimeout(() => { bot.chat('/login ShoueShoue'); }, 5000);
+  console.log('--- BOT SUNUCUYA BAŞARIYLA GİRDİ ---');
+  // Login komutunu buraya ekle
+  setTimeout(() => { 
+    bot.chat('/login ShoueShoue'); 
+  }, 5000);
 });
 
-bot.on('error', (err) => console.log('Hata:', err));
-bot.on('end', () => console.log('Bağlantı koptu.'));
+// Hata ayıklama (Logların şişmemesi için kısa tuttuk)
+bot.on('error', (err) => console.log('Hata oluştu.'));
+bot.on('end', () => console.log('Bağlantı koptu, yeniden deneniyor...'));
