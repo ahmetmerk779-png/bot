@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { background: #111; color: #0f0; font-family: monospace; padding: 10px; }
+        #log { height: 200px; overflow-y: auto; border: 1px solid #444; padding: 5px; background: #000; margin-bottom: 10px; }
+        .btn { background: #333; color: #fff; padding: 15px; border: 1px solid #666; width: 100%; margin: 5px 0; font-weight: bold; }
+        .asmp { background: #a00; border-color: #f00; }
+        #radar { font-size: 12px; color: #aaa; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+    <h3>AESIR BOT PANEL</h3>
+    <div id="radar">Radar yükleniyor...</div>
+    <div id="log"></div>
+    <input type="text" id="inp" style="width:70%; padding:10px;"><button onclick="chat()" style="padding:10px; width:25%;">Yaz</button>
+    <button class="btn asmp" onclick="send('go_asmp')">ASMP'YE BAĞLAN</button>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        socket.on('msg', d => {
+            const el = document.getElementById('log');
+            el.innerHTML += `<div><b>${d.username}:</b> ${d.message}</div>`;
+            el.scrollTop = el.scrollHeight;
+        });
+        socket.on('radar', d => {
+            document.getElementById('radar').innerText = "Yakındakiler: " + d.map(p => `${p.name} (${p.dist}m)`).join(', ');
+        });
+        function chat() { 
+            const val = document.getElementById('inp').value;
+            socket.emit('send_chat', val);
+            document.getElementById('inp').value = '';
+        }
+        function send(ev) { socket.emit(ev); }
+    </script>
+</body>
+</html>
