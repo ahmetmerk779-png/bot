@@ -1,71 +1,80 @@
-const express = require('express');
-const { Client, IntentsBitField } = require('discord.js');
 const mineflayer = require('mineflayer');
+const express = require('express');
+const http = require('http');
+const { Server } = require('socket.io');
 
-// --- RENDER UYANIK TUTMA (KEEP-ALIVE) ---
 const app = express();
-app.get('/', (req, res) => res.send('<h1>🤖 MasterBot Aktif!</h1><p>Discord üzerinden komut gönderebilirsin.</p>'));
-app.listen(process.env.PORT || 3000);
+const server = http.createServer(app);
+const io = new Server(server);
+const port = process.env.PORT || 3000;
 
-// --- AYARLAR (BURALARI DOLDUR) ---
-const TOKEN = 'BURAYA_DISCORD_BOT_TOKEN_YAZ';
-const KANAL_ID = 'BURAYA_KANAL_ID_YAZ';
-// ---------------------------------
-
-const client = new Client({ 
-    intents: [
-        IntentsBitField.Flags.Guilds, 
-        IntentsBitField.Flags.GuildMessages, 
-        IntentsBitField.Flags.MessageContent
-    ] 
-});
+const botOptions = {
+    host: 'oyna.aesirmc.com',
+    username: 'myshoue', // BURAYI DEĞİŞTİR
+    version: '1.21.11',
+    hideErrors: true
+};
 
 let bot;
 
-function baglan() {
-    bot = mineflayer.createBot({
-        host: 'play.aesirmc.com',
-        username: 'MasterBot', // Oyun içi adın
-        version: '1.16.5',
-        auth: 'offline'
-    });
+function createBot() {
+    bot = mineflayer.createBot(botOptions);
+
+    bot.on('end', () => setTimeout(createBot, 5000));
 
     bot.on('spawn', () => {
-        const c = client.channels.cache.get(KANAL_ID);
-        if(c) c.send("✅ **Bot Lobiye Girdi!** ASMP'ye girmek için `.asmp` yaz.");
+        console.log("Bot giriş yaptı!");
+        // Otomatik Giriş Komutu (Gerekliyse)
+        bot.chat('/login ShoueShoue'); 
+        
+        // Anti-AFK
+        setInterval(() => {
+            if(bot.entity) {
+                bot.setControlState('jump', true);
+                setTimeout(() => bot.setControlState('jump', false), 200);
+            }
+        }, 20000);
     });
 
-    // Oyundaki Chat'i Discord'a Aktar
-    bot.on('chat', (u, m) => {
-        const c = client.channels.cache.get(KANAL_ID);
-        if(c) c.send(`**[${u}]**: ${m}`);
+    bot.on('chat', (username, message) => {
+        io.emit('msg', { username, message });
+        if (message.toLowerCase().includes('selam')) bot.chat('Aleyküm Selam!');
     });
 
-    // Hata Olursa Yeniden Bağlan
-    bot.on('error', (err) => console.log('Hata:', err));
-    bot.on('end', () => setTimeout(baglan, 5000));
+    // Radar Verisi
+    setInterval(() => {
+        if (!bot.entities) return;
+        const players = Object.values(bot.entities)
+            .filter(e => e.type === 'player' && e.username !== bot.username)
+            .map(p => ({ name: p.username, dist: Math.round(bot.entity.position.distanceTo(p.position)) }));
+        io.emit('radar', players);
+    }, 3000);
 }
 
-client.on('messageCreate', (msg) => {
-    if (msg.author.bot || msg.channel.id !== KANAL_ID) return;
-
-    // OTOMATİK MENÜ GEÇİŞİ
-    if (msg.content === '.asmp') {
-        msg.reply("🔄 AesirMC Menüsü açılıyor, ASMP seçiliyor...");
-        bot.chat('/menu');
-        
-        bot.once('windowOpen', (window) => {
-            // AesirMC'de ASMP genellikle ilk slotta (0) olur.
-            bot.clickWindow(0, 0, 0); 
-            msg.reply("🚀 ASMP'ye giriş yapıldı!");
+// ASMP Giriş (Nether Yıldızı -> ASMP İkonu)
+function joinASMP() {
+    const star = bot.inventory.items().find(i => i.name.includes('nether_star'));
+    if (star) {
+        bot.equip(star, 'hand', () => {
+            bot.activateItem();
+            setTimeout(() => {
+                const win = bot.currentWindow;
+                if (win) {
+                    const asmp = win.items().find(i => i.displayName.toLowerCase().includes('asmp'));
+                    if (asmp) bot.clickWindow(asmp.slot, 0, 0);
+                }
+            }, 1200);
         });
     }
+}
 
-    // Discord'dan Oyuna Mesaj Yazma
-    if (msg.content.startsWith('.yaz ')) {
-        bot.chat(msg.content.slice(5));
-    }
+io.on('connection', (socket) => {
+    socket.on('go_asmp', () => joinASMP());
+    socket.on('send_chat', (msg) => bot.chat(msg));
 });
 
-client.login(TOKEN);
-baglan();
+app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
+server.listen(port, () => {
+    console.log(`Panel hazır! Port: ${port}`);
+    createBot();
+});
