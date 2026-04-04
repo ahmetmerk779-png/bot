@@ -1,39 +1,84 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>MC BOT ULTIMATE</title>
     <style>
-        body { background: #111; color: #0f0; font-family: monospace; padding: 10px; }
-        #log { height: 200px; overflow-y: auto; border: 1px solid #444; padding: 5px; background: #000; margin-bottom: 10px; }
-        .btn { background: #333; color: #fff; padding: 15px; border: 1px solid #666; width: 100%; margin: 5px 0; font-weight: bold; }
-        .asmp { background: #a00; border-color: #f00; }
-        #radar { font-size: 12px; color: #aaa; margin-bottom: 5px; }
+        :root { --bg: #121212; --card: #1e1e1e; --accent: #4caf50; --danger: #f44336; }
+        body { background: var(--bg); color: #fff; font-family: sans-serif; margin: 0; padding: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .card { background: var(--card); border-radius: 8px; padding: 12px; border: 1px solid #333; font-size: 13px; }
+        #log { height: 200px; overflow-y: auto; background: #000; border-radius: 5px; padding: 8px; font-family: monospace; border: 1px solid #444; }
+        .btn { padding: 12px; border-radius: 5px; border: none; font-weight: bold; width: 100%; cursor: pointer; color: white; }
+        .btn-move { background: #333; font-size: 18px; }
+        .btn-action { background: var(--accent); margin-top: 10px; }
+        input { background: #333; border: 1px solid #444; color: #fff; padding: 10px; border-radius: 5px; width: 90%; margin: 5px 0; }
+        .inventory-list { color: #aaa; font-size: 11px; }
     </style>
 </head>
 <body>
-    <h3>AESIR BOT PANEL</h3>
-    <div id="radar">Radar yükleniyor...</div>
-    <div id="log"></div>
-    <input type="text" id="inp" style="width:70%; padding:10px;"><button onclick="chat()" style="padding:10px; width:25%;">Yaz</button>
-    <button class="btn asmp" onclick="send('go_asmp')">ASMP'YE BAĞLAN</button>
+
+    <div class="card" style="margin-bottom:10px;">
+        <b>⚙️ SİSTEM AYARLARI</b><br>
+        <input type="text" id="ip" placeholder="IP (oyna.aesirmc.com)">
+        <input type="text" id="name" placeholder="Bot İsmi">
+        <input type="text" id="ver" placeholder="Sürüm (1.21.11)">
+        <button class="btn btn-action" onclick="updateConfig()">AYARLARI KAYDET VE BAĞLAN</button>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <b>📍 RADAR</b>
+            <div id="radar" style="color: #4caf50; margin-top:5px;">Tarama...</div>
+        </div>
+        <div class="card">
+            <b>🎒 ENVANTER</b>
+            <div id="env" class="inventory-list">Boş...</div>
+        </div>
+    </div>
+
+    <div id="log">--- KONSOL BAŞLADI ---</div>
+    
+    <div style="display:flex; gap:5px; margin-top:10px;">
+        <input type="text" id="cmd" placeholder="Komut yaz..." style="margin:0;">
+        <button onclick="sendCmd()" style="width:25%; background:var(--accent); border:none; border-radius:5px; color:#fff;">YAZ</button>
+    </div>
+
+    <div class="grid" style="margin-top:15px;">
+        <button class="btn btn-move" onclick="move('forward')">⬆️ İLERİ</button>
+        <button class="btn btn-move" onclick="move('back')">⬇️ GERİ</button>
+        <button class="btn btn-move" onclick="move('left')">⬅️ SOL</button>
+        <button class="btn btn-move" onclick="move('right')">➡️ SAĞ</button>
+    </div>
+
+    <button class="btn btn-action" style="background:var(--danger); font-size:16px;" onclick="socket.emit('go_asmp')">🚀 ASMP'YE GİRİŞ YAP</button>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        socket.on('msg', d => {
-            const el = document.getElementById('log');
-            el.innerHTML += `<div><b>${d.username}:</b> ${d.message}</div>`;
-            el.scrollTop = el.scrollHeight;
-        });
-        socket.on('radar', d => {
-            document.getElementById('radar').innerText = "Yakındakiler: " + d.map(p => `${p.name} (${p.dist}m)`).join(', ');
-        });
-        function chat() { 
-            const val = document.getElementById('inp').value;
-            socket.emit('send_chat', val);
-            document.getElementById('inp').value = '';
+        function updateConfig() {
+            socket.emit('update_config', {
+                host: document.getElementById('ip').value || 'oyna.aesirmc.com',
+                username: document.getElementById('name').value || 'Bot_Hesap',
+                version: document.getElementById('ver').value || '1.21.11'
+            });
+            alert("Bot ayarları güncellendi, yeniden bağlanılıyor!");
         }
-        function send(ev) { socket.emit(ev); }
+
+        socket.on('msg', d => {
+            const div = document.createElement('div');
+            div.innerHTML = `<span style="color:#ff9800">${d.username}:</span> ${d.message}`;
+            document.getElementById('log').appendChild(div);
+            document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+        });
+
+        socket.on('update', d => {
+            document.getElementById('radar').innerHTML = d.players.map(p => `• ${p.name} (${p.dist}m)`).join('<br>') || 'Kimse yok';
+            document.getElementById('env').innerHTML = d.items.join('<br>') || 'Envanter Boş';
+        });
+
+        function sendCmd() { socket.emit('command', document.getElementById('cmd').value); document.getElementById('cmd').value = ''; }
+        function move(dir) { socket.emit('move', dir); }
     </script>
 </body>
 </html>
