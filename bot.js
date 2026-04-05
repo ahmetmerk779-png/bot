@@ -12,9 +12,9 @@ const Vec3 = require('vec3');
 
 // Dashboard'dan değişecek ayarlar
 let botConfig = {
-    host: 'aesirmc.asmp.fun',
+    host: 'oyna.aesirmc.com',
     port: 25565,
-    username: 'BotHesap',
+    username: 'myshoue',
     auth: 'offline',
     version: '1.20.4'
 };
