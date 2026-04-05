@@ -1,7 +1,7 @@
 {
   "name": "afk-bot-aesirmc",
   "version": "6.0.0",
-  "description": "Full AFK Bot for Aesirmc ASMP with AI",
+  "description": "Full AFK Bot for Aesirmc ASMP",
   "main": "bot.js",
   "scripts": {
     "start": "node bot.js"
