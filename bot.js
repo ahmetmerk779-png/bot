@@ -8,6 +8,7 @@ const pvp = require('mineflayer-pvp').plugin;
 const autoEat = require('mineflayer-auto-eat');
 const tool = require('mineflayer-tool').plugin;
 const mineflayerViewer = require('prismarine-viewer').mineflayer;
+const Vec3 = require('vec3');
 
 // Dashboard'dan değişecek ayarlar
 let botConfig = {
@@ -15,8 +16,7 @@ let botConfig = {
     port: 25565,
     username: 'BotHesap',
     auth: 'offline',
-    version: '1.20.4',
-    skinUrl: ''
+    version: '1.20.4'
 };
 
 let aiConfig = {
@@ -136,7 +136,7 @@ function startBot() {
 
     // Takip etme
     setInterval(() => {
-        if (modules.followTarget && botInstance) {
+        if (modules.followTarget && botInstance && botInstance.entity) {
             const player = botInstance.players[modules.followTarget];
             if (player && player.entity) {
                 botInstance.pathfinder.setGoal(new goals.GoalFollow(player.entity, 3), true);
@@ -160,7 +160,7 @@ function startBot() {
 
     // Auto eat
     botInstance.on('health', () => {
-        if (modules.autoEat && botInstance.food < 14) {
+        if (modules.autoEat && botInstance.food < 14 && botInstance) {
             botInstance.autoEat.eat();
         }
     });
@@ -168,7 +168,7 @@ function startBot() {
     // Farming
     function startFarming() {
         setInterval(() => {
-            if (!modules.farming || !botInstance) return;
+            if (!modules.farming || !botInstance || !botInstance.entity) return;
             const wheat = botInstance.findBlock({ matching: b => b.name === 'wheat', maxDistance: 32 });
             if (wheat) {
                 botInstance.tool.equipForBlock(wheat, () => {
@@ -177,12 +177,13 @@ function startBot() {
                             stats.cropsHarvested++;
                             addLog('Farming: Wheat harvested');
                             setTimeout(() => {
+                                if (!botInstance || !botInstance.entity) return;
                                 const below = botInstance.blockAt(wheat.position.offset(0, -1, 0));
                                 if (below && below.name.includes('farmland')) {
                                     const seeds = botInstance.inventory.items.find(i => i.name === 'wheat_seeds');
                                     if (seeds) {
                                         botInstance.equip(seeds, 'hand');
-                                        botInstance.placeBlock(below, { x: 0, y: 1, z: 0 }, () => {
+                                        botInstance.placeBlock(below, new Vec3(0, 1, 0), () => {
                                             stats.cropsPlanted++;
                                             addLog('Farming: Wheat planted');
                                         });
@@ -199,7 +200,7 @@ function startBot() {
     // Mining
     function startMining() {
         setInterval(() => {
-            if (!modules.mining || !botInstance) return;
+            if (!modules.mining || !botInstance || !botInstance.entity) return;
             const ores = ['diamond_ore', 'iron_ore', 'gold_ore', 'emerald_ore', 'coal_ore'];
             let target = null;
             for (const ore of ores) {
@@ -244,7 +245,7 @@ function startBot() {
         });
         
         setInterval(() => {
-            if (!modules.combat || !botInstance) return;
+            if (!modules.combat || !botInstance || !botInstance.entity) return;
             const hostile = botInstance.nearestEntity(e => {
                 return e.type === 'mob' && e.position.distanceTo(botInstance.entity.position) < 16 &&
                        (e.name === 'zombie' || e.name === 'skeleton' || e.name === 'spider' || e.name === 'creeper');
@@ -506,9 +507,9 @@ app.get('/stats', (req, res) => {
         blocksMined: stats.blocksMined,
         diamondsFound: stats.diamondsFound,
         enemiesKilled: stats.enemiesKilled,
-        posX: botInstance ? Math.floor(botInstance.entity.position.x) : 0,
-        posY: botInstance ? Math.floor(botInstance.entity.position.y) : 0,
-        posZ: botInstance ? Math.floor(botInstance.entity.position.z) : 0
+        posX: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.x) : 0,
+        posY: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.y) : 0,
+        posZ: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.z) : 0
     });
 });
 
@@ -519,9 +520,9 @@ setInterval(() => {
         blocksMined: stats.blocksMined,
         diamondsFound: stats.diamondsFound,
         enemiesKilled: stats.enemiesKilled,
-        posX: botInstance ? Math.floor(botInstance.entity.position.x) : 0,
-        posY: botInstance ? Math.floor(botInstance.entity.position.y) : 0,
-        posZ: botInstance ? Math.floor(botInstance.entity.position.z) : 0
+        posX: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.x) : 0,
+        posY: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.y) : 0,
+        posZ: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.z) : 0
     });
     io.emit('modules', modules);
 }, 2000);
