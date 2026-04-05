@@ -24,9 +24,9 @@ function startBot() {
     if (bot) bot.end();
     
     bot = mineflayer.createBot({
-        host: 'oyna.aesirmc.com',
+        host: 'play.aesirmc.com',
         port: 25565,
-        username: botUsername,
+        username: myshoue,
         auth: 'offline'
     });
 
