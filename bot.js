@@ -2,353 +2,556 @@ const mineflayer = require('mineflayer');
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
-const axios = require('axios');
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const pvp = require('mineflayer-pvp').plugin;
-const autoEat = require('mineflayer-auto-eat');
-const tool = require('mineflayer-tool').plugin;
-const mineflayerViewer = require('prismarine-viewer').mineflayer;
-const Vec3 = require('vec3');
-
-let botConfig = {
-    host: 'oyna.aesirmc.com',
-    port: 25565,
-    username: 'myshoue',
-    auth: 'offline',
-    version: '1.20.4'
-};
-
-let aiConfig = { enabled: false, apiKey: '', model: 'gryphe/mythomax-l2-13b:free' };
-let modules = { farming: true, mining: true, combat: true, autoEat: true, afkMove: true, aiChat: false };
-let stats = { cropsPlanted: 0, cropsHarvested: 0, blocksMined: 0, diamondsFound: 0, ironFound: 0, goldFound: 0, enemiesKilled: 0 };
-let logs = [];
-let botInstance = null;
-let reconnectTimer = null;
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 const PORT = process.env.PORT || 3000;
 
+let bot = null;
+let logs = [];
+let botStatus = 'offline';
+let botUsername = 'BotHesap';
+
 function addLog(msg, type = 'info') {
     const entry = { time: new Date().toLocaleTimeString(), msg, type };
     logs.unshift(entry);
     if (logs.length > 100) logs.pop();
     io.emit('log', entry);
-    console.log(`[${entry.time}] ${msg}`);
-}
-
-function stopBot() {
-    if (botInstance) { botInstance.end(); botInstance = null; }
-    if (reconnectTimer) clearTimeout(reconnectTimer);
 }
 
 function startBot() {
-    stopBot();
-    addLog(`Starting bot: ${botConfig.username} | ${botConfig.auth} | ${botConfig.version} | ${botConfig.host}:${botConfig.port}`);
-    botInstance = mineflayer.createBot({
-        host: botConfig.host,
-        port: botConfig.port,
-        username: botConfig.username,
-        auth: botConfig.auth,
-        version: botConfig.version
-    });
-    botInstance.loadPlugin(pathfinder);
-    botInstance.loadPlugin(pvp);
-    botInstance.loadPlugin(autoEat);
-    botInstance.loadPlugin(tool);
-
-    botInstance.once('spawn', () => {
-        addLog(`Bot spawned at ${botConfig.host}:${botConfig.port}`);
-        mineflayerViewer(botInstance, { port: 3001, firstPerson: true, viewDistance: 6 });
-        addLog('3D Viewer started on port 3001');
-        if (modules.farming) startFarming();
-        if (modules.mining) startMining();
-        if (modules.combat) startCombat();
-    });
-
-    botInstance.on('end', () => {
-        addLog('Disconnected, reconnecting in 10 seconds', 'error');
-        reconnectTimer = setTimeout(() => startBot(), 10000);
-    });
-    botInstance.on('error', (err) => addLog(`Error: ${err.message}`, 'error'));
+    if (bot) bot.end();
     
-    botInstance.on('chat', async (username, msg) => {
-        if (username === botInstance.username) return;
-        addLog(`${username}: ${msg}`, 'chat');
-        if (msg.startsWith('!')) {
-            const cmd = msg.slice(1).split(' ')[0];
-            switch(cmd) {
-                case 'stats': botInstance.chat(`Mined:${stats.blocksMined} Diamonds:${stats.diamondsFound} Kills:${stats.enemiesKilled}`); break;
-                case 'pos': const p = botInstance.entity.position; botInstance.chat(`X:${p.x.toFixed(0)} Y:${p.y.toFixed(0)} Z:${p.z.toFixed(0)}`); break;
-                case 'follow': modules.followTarget = username; botInstance.chat(`Following ${username}`); break;
-                case 'stop': modules.followTarget = null; botInstance.chat('Stopped'); break;
-                default: botInstance.chat('Commands: !stats, !pos, !follow, !stop');
-            }
-        } else if (modules.aiChat && aiConfig.enabled && aiConfig.apiKey) {
-            const reply = await aiChat(msg, username);
-            if (reply) botInstance.chat(reply);
-        }
+    bot = mineflayer.createBot({
+        host: 'oyna.aesirmc.com',
+        port: 25565,
+        username: botUsername,
+        auth: 'offline'
     });
 
-    setInterval(() => {
-        if (modules.followTarget && botInstance && botInstance.entity) {
-            const player = botInstance.players[modules.followTarget];
-            if (player && player.entity) botInstance.pathfinder.setGoal(new goals.GoalFollow(player.entity, 3), true);
-        }
-    }, 1000);
-
-    setInterval(() => {
-        if (modules.afkMove && botInstance && botInstance.entity) {
-            const actions = ['forward', 'back', 'left', 'right'];
-            const action = actions[Math.floor(Math.random() * actions.length)];
-            botInstance.setControlState(action, true);
-            setTimeout(() => botInstance.setControlState(action, false), 600);
-            if (Math.random() > 0.8) {
-                botInstance.setControlState('jump', true);
-                setTimeout(() => botInstance.setControlState('jump', false), 200);
-            }
-        }
-    }, 6000);
-
-    botInstance.on('health', () => { if (modules.autoEat && botInstance.food < 14 && botInstance) botInstance.autoEat.eat(); });
-
-    function startFarming() {
+    bot.once('spawn', () => {
+        botStatus = 'online';
+        addLog(`Bot ${botUsername} giriş yaptı`, 'success');
+        io.emit('status', { status: 'online', username: botUsername });
+        
+        // AFK hareket
         setInterval(() => {
-            if (!modules.farming || !botInstance || !botInstance.entity) return;
-            const wheat = botInstance.findBlock({ matching: b => b.name === 'wheat', maxDistance: 32 });
-            if (wheat) {
-                botInstance.tool.equipForBlock(wheat, () => {
-                    botInstance.dig(wheat, (err) => {
-                        if (!err) {
-                            stats.cropsHarvested++;
-                            addLog('Farming: Wheat harvested');
-                            setTimeout(() => {
-                                if (!botInstance || !botInstance.entity) return;
-                                const below = botInstance.blockAt(wheat.position.offset(0, -1, 0));
-                                if (below && below.name.includes('farmland')) {
-                                    const seeds = botInstance.inventory.items.find(i => i.name === 'wheat_seeds');
-                                    if (seeds) {
-                                        botInstance.equip(seeds, 'hand');
-                                        botInstance.placeBlock(below, new Vec3(0, 1, 0), () => { stats.cropsPlanted++; addLog('Farming: Wheat planted'); });
-                                    }
-                                }
-                            }, 500);
-                        }
-                    });
-                });
+            if (bot && bot.entity) {
+                const actions = ['forward', 'back', 'left', 'right'];
+                const action = actions[Math.floor(Math.random() * actions.length)];
+                bot.setControlState(action, true);
+                setTimeout(() => bot.setControlState(action, false), 500);
             }
-        }, 15000);
-    }
+        }, 5000);
+    });
 
-    function startMining() {
-        setInterval(() => {
-            if (!modules.mining || !botInstance || !botInstance.entity) return;
-            const ores = ['diamond_ore', 'iron_ore', 'gold_ore', 'emerald_ore', 'coal_ore'];
-            let target = null;
-            for (const ore of ores) { target = botInstance.findBlock({ matching: b => b.name === ore, maxDistance: 32 }); if (target) break; }
-            if (target) {
-                botInstance.tool.equipForBlock(target, () => {
-                    botInstance.dig(target, (err) => {
-                        if (!err) {
-                            stats.blocksMined++;
-                            if (target.name === 'diamond_ore') stats.diamondsFound++;
-                            if (target.name === 'iron_ore') stats.ironFound++;
-                            if (target.name === 'gold_ore') stats.goldFound++;
-                            addLog(`Mining: ${target.name} mined`);
-                        }
-                    });
-                });
-            } else {
-                const below = botInstance.blockAt(botInstance.entity.position.offset(0, -1, 0));
-                if (below && below.name !== 'bedrock') {
-                    botInstance.tool.equipForBlock(below, () => {
-                        botInstance.dig(below, () => { stats.blocksMined++; addLog('Mining: Digging down'); });
-                    });
-                }
-            }
-        }, 8000);
-    }
+    bot.on('end', () => {
+        botStatus = 'offline';
+        addLog('Bağlantı kesildi', 'error');
+        io.emit('status', { status: 'offline', username: null });
+        setTimeout(() => startBot(), 10000);
+    });
 
-    function startCombat() {
-        botInstance.on('entityHurt', (entity) => {
-            if (!modules.combat || entity !== botInstance.entity) return;
-            const attacker = botInstance.nearestEntity(e => e.position.distanceTo(botInstance.entity.position) < 5 && e.type === 'mob');
-            if (attacker) { botInstance.pvp.attack(attacker); addLog(`Combat: Attacking ${attacker.name}`); }
-        });
-        setInterval(() => {
-            if (!modules.combat || !botInstance || !botInstance.entity) return;
-            const hostile = botInstance.nearestEntity(e => e.type === 'mob' && e.position.distanceTo(botInstance.entity.position) < 16 && ['zombie','skeleton','spider','creeper'].includes(e.name));
-            if (hostile) { botInstance.pvp.attack(hostile); addLog(`Combat: Engaging ${hostile.name}`); }
-        }, 3000);
-        botInstance.on('entityGone', (entity) => { if (entity === botInstance.pvp.target) { stats.enemiesKilled++; addLog('Combat: Enemy defeated'); } });
-    }
-}
-
-async function aiChat(msg, sender) {
-    if (!aiConfig.apiKey) return null;
-    try {
-        const response = await axios.post('https://openrouter.ai/api/v1/chat/completions', {
-            model: aiConfig.model,
-            messages: [{ role: 'system', content: 'You are a helpful Minecraft bot assistant. Reply shortly and naturally.' }, { role: 'user', content: `${sender} said: ${msg}. Reply as a Minecraft bot.` }]
-        }, { headers: { 'Authorization': `Bearer ${aiConfig.apiKey}`, 'Content-Type': 'application/json' } });
-        return response.data.choices[0].message.content;
-    } catch (err) { addLog(`AI Error: ${err.message}`, 'error'); return null; }
+    bot.on('error', (err) => addLog(`Hata: ${err.message}`, 'error'));
+    
+    bot.on('chat', (username, message) => {
+        addLog(`${username}: ${message}`, 'chat');
+    });
 }
 
 app.use(express.json());
+app.use(express.static('public'));
+
 app.get('/', (req, res) => {
     res.send(`
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AFK BOT | AESIRMC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AFK Bot | Aesirmc ASMP</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { background: #0a0a0f; color: #e1e1e6; font-family: monospace; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .row { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
-        .card { background: #1a1a24; border: 1px solid #2a2a35; border-radius: 12px; padding: 20px; flex: 1; min-width: 250px; }
-        .card h3 { color: #8b5cf6; margin-bottom: 12px; font-size: 14px; }
-        input, select, button { background: #0f0f14; border: 1px solid #2a2a35; padding: 10px; border-radius: 8px; color: white; margin: 6px 0; width: 100%; font-size: 13px; }
-        button { background: #2a2a35; cursor: pointer; font-weight: bold; }
-        button:hover { background: #3a3a45; }
-        .log-area { background: #0a0a0f; height: 400px; overflow-y: auto; font-size: 12px; border: 1px solid #2a2a35; border-radius: 8px; padding: 10px; }
-        .log-line { padding: 6px 8px; border-bottom: 1px solid #1a1a24; font-family: monospace; }
-        .log-time { color: #52525b; margin-right: 10px; }
-        .info { color: #3b82f6; }
-        .success { color: #22c55e; }
-        .error { color: #ef4444; }
-        .chat { color: #e1e1e6; }
-        .command-bar { display: flex; gap: 10px; margin-top: 10px; }
-        .command-bar input { flex: 5; }
-        .command-bar button { flex: 1; }
-        hr { border-color: #2a2a35; margin: 15px 0; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0a0a0f;
+            color: #e1e1e6;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        /* Header */
+        .header {
+            background: rgba(18, 18, 24, 0.95);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid #2a2a35;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #e1e1e6, #a1a1aa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .badge {
+            background: #1a1a24;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #8b5cf6;
+            font-weight: 500;
+        }
+        
+        /* Main */
+        .main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: #0f0f14;
+            border-right: 1px solid #2a2a35;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                display: none;
+            }
+        }
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #2a2a35;
+        }
+        
+        .new-chat-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .new-chat-btn:hover {
+            transform: translateY(-1px);
+            opacity: 0.9;
+        }
+        
+        .chat-list {
+            flex: 1;
+            padding: 12px;
+        }
+        
+        .chat-item {
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        
+        .chat-item:hover {
+            background: #1a1a24;
+        }
+        
+        /* Chat Area */
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #0a0a0f;
+        }
+        
+        /* Status Bar */
+        .status-bar {
+            background: #0f0f14;
+            padding: 12px 24px;
+            border-bottom: 1px solid #2a2a35;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse 2s infinite;
+        }
+        
+        .status-dot.offline {
+            background: #a1a1aa;
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-text {
+            color: #a1a1aa;
+        }
+        
+        /* Logs Container */
+        .logs-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        
+        .log-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            max-width: 85%;
+            animation: fadeIn 0.3s ease;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .log-success {
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            align-self: flex-start;
+            color: #22c55e;
+        }
+        
+        .log-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            align-self: flex-start;
+            color: #ef4444;
+        }
+        
+        .log-info {
+            background: rgba(139, 92, 246, 0.1);
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            align-self: flex-start;
+            color: #a78bfa;
+        }
+        
+        .log-chat {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            align-self: flex-start;
+            color: #60a5fa;
+        }
+        
+        .log-time {
+            font-size: 10px;
+            color: #52525b;
+            margin-top: 4px;
+        }
+        
+        /* Input Area */
+        .input-area {
+            padding: 20px 24px;
+            background: #0f0f14;
+            border-top: 1px solid #2a2a35;
+        }
+        
+        .input-wrapper {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: #1a1a24;
+            border-radius: 16px;
+            padding: 8px 16px;
+            border: 1px solid #2a2a35;
+            transition: all 0.2s;
+        }
+        
+        .input-wrapper:focus-within {
+            border-color: #6366f1;
+        }
+        
+        .username-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #e1e1e6;
+            font-size: 14px;
+            padding: 12px 0;
+            outline: none;
+        }
+        
+        .username-input::placeholder {
+            color: #52525b;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .action-btn {
+            background: transparent;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 10px;
+            color: white;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .start-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+        }
+        
+        .stop-btn {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .send-btn {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+        
+        .action-btn:hover {
+            transform: scale(0.98);
+        }
+        
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #1a1a24;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #3a3a45;
+            border-radius: 3px;
+        }
     </style>
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-<div class="container">
-    <h1>AFK BOT | AESIRMC</h1>
-    <div class="row">
-        <div class="card">
-            <h3>BOT COMMANDS</h3>
-            <div class="command-bar">
-                <input type="text" id="commandInput" placeholder="Type a command or message...">
-                <button onclick="sendCommand()">SEND</button>
+    <div class="app">
+        <div class="header">
+            <div class="logo">
+                <div class="logo-icon">AFK</div>
+                <h1>AFK Bot Studio</h1>
             </div>
-            <div style="margin-top:10px; font-size:12px; color:#a1a1aa;">
-                Available commands: !stats , !pos , !follow , !stop
+            <div class="badge">Aesirmc • ASMP</div>
+        </div>
+        
+        <div class="main">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <button class="new-chat-btn" onclick="clearLogs()">Yeni Oturum</button>
+                </div>
+                <div class="chat-list">
+                    <div class="chat-item">AFK Bot • Aktif</div>
+                </div>
+            </div>
+            
+            <div class="chat-area">
+                <div class="status-bar">
+                    <div class="status-dot" id="statusDot"></div>
+                    <div class="status-text" id="statusText">Bot durduruldu</div>
+                </div>
+                
+                <div class="logs-container" id="logsContainer">
+                    <div class="log-message log-info">
+                        Bot hazir. Baslatmak icin kullanici adini gir ve "Baslat" butonuna tikla.
+                        <div class="log-time">${new Date().toLocaleTimeString()}</div>
+                    </div>
+                </div>
+                
+                <div class="input-area">
+                    <div class="input-wrapper">
+                        <input type="text" class="username-input" id="username" placeholder="Minecraft kullanici adin">
+                        <div class="action-buttons">
+                            <button class="action-btn start-btn" onclick="startBot()">Baslat</button>
+                            <button class="action-btn stop-btn" onclick="stopBot()">Durdur</button>
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px;">
+                        <div class="input-wrapper">
+                            <input type="text" class="username-input" id="chatInput" placeholder="Bot'a mesaj gonder...">
+                            <button class="action-btn send-btn" onclick="sendChat()">Gonder</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="card">
-            <h3>MODULES</h3>
-            <button onclick="toggle('farming')">TOGGLE FARMING</button>
-            <button onclick="toggle('mining')">TOGGLE MINING</button>
-            <button onclick="toggle('combat')">TOGGLE COMBAT</button>
-            <button onclick="toggle('autoEat')">TOGGLE AUTO EAT</button>
-            <button onclick="toggle('afkMove')">TOGGLE AFK MOVE</button>
-            <hr>
-            <div id="moduleStatus">Farming: ACTIVE | Mining: ACTIVE | Combat: ACTIVE</div>
-        </div>
-        <div class="card">
-            <h3>STATISTICS</h3>
-            <div>Farming: Planted <span id="cropsPlanted">0</span> | Harvested <span id="cropsHarvested">0</span></div>
-            <div>Mining: Blocks <span id="blocksMined">0</span> | Diamonds <span id="diamondsFound">0</span></div>
-            <div>Combat: Kills <span id="enemiesKilled">0</span></div>
-            <div>Position: X <span id="posX">0</span> Y <span id="posY">0</span> Z <span id="posZ">0</span></div>
-        </div>
     </div>
-    <div class="card">
-        <h3>LIVE CONSOLE</h3>
-        <div class="log-area" id="logArea"><div class="log-line">system ready</div></div>
-    </div>
-    <div class="card">
-        <h3>3D VIEWER</h3>
-        <div><a href="/viewer" target="_blank" style="color:#8b5cf6;">Open 3D Viewer (Bot's Perspective)</a></div>
-    </div>
-</div>
-<script src="/socket.io/socket.io.js"></script>
-<script>
-const socket = io();
-socket.on('log', (data) => {
-    const logDiv = document.getElementById('logArea');
-    const entry = document.createElement('div');
-    entry.className = 'log-line';
-    entry.innerHTML = '<span class="log-time">[' + data.time + ']</span> <span class="' + data.type + '">' + data.msg + '</span>';
-    logDiv.prepend(entry);
-    if(logDiv.children.length > 100) logDiv.removeChild(logDiv.lastChild);
-});
-socket.on('stats', (data) => {
-    document.getElementById('cropsPlanted').innerText = data.cropsPlanted;
-    document.getElementById('cropsHarvested').innerText = data.cropsHarvested;
-    document.getElementById('blocksMined').innerText = data.blocksMined;
-    document.getElementById('diamondsFound').innerText = data.diamondsFound;
-    document.getElementById('enemiesKilled').innerText = data.enemiesKilled;
-    document.getElementById('posX').innerText = data.posX;
-    document.getElementById('posY').innerText = data.posY;
-    document.getElementById('posZ').innerText = data.posZ;
-});
-socket.on('modules', (data) => {
-    document.getElementById('moduleStatus').innerHTML = 'Farming: ' + (data.farming ? 'ACTIVE' : 'OFF') + ' | Mining: ' + (data.mining ? 'ACTIVE' : 'OFF') + ' | Combat: ' + (data.combat ? 'ACTIVE' : 'OFF');
-});
-function sendCommand() {
-    const input = document.getElementById('commandInput');
-    const cmd = input.value;
-    if(cmd.trim()) {
-        fetch('/command', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ command: cmd }) });
-        input.value = '';
-    }
-}
-function toggle(module) { fetch('/toggle/' + module); }
-</script>
+    
+    <script>
+        const socket = io();
+        
+        socket.on('log', (log) => {
+            addLogToUI(log);
+        });
+        
+        socket.on('status', (status) => {
+            document.getElementById('statusText').innerText = status.status === 'online' ? 'Bot aktif' : 'Bot durduruldu';
+            const dot = document.getElementById('statusDot');
+            if (status.status === 'online') {
+                dot.style.background = '#22c55e';
+                dot.classList.remove('offline');
+            } else {
+                dot.style.background = '#a1a1aa';
+                dot.classList.add('offline');
+            }
+        });
+        
+        function addLogToUI(log) {
+            const container = document.getElementById('logsContainer');
+            const logDiv = document.createElement('div');
+            let typeClass = 'log-info';
+            if (log.type === 'success') typeClass = 'log-success';
+            else if (log.type === 'error') typeClass = 'log-error';
+            else if (log.type === 'chat') typeClass = 'log-chat';
+            else typeClass = 'log-info';
+            
+            logDiv.className = `log-message ${typeClass}`;
+            logDiv.innerHTML = log.msg + '<div class="log-time">' + log.time + '</div>';
+            container.appendChild(logDiv);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function startBot() {
+            const username = document.getElementById('username').value;
+            if (!username) {
+                addLogToUI({type: 'error', msg: 'Lutfen kullanici adini gir', time: new Date().toLocaleTimeString()});
+                return;
+            }
+            fetch('/start', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: username})
+            });
+        }
+        
+        function stopBot() {
+            fetch('/stop', {method: 'POST'});
+        }
+        
+        function sendChat() {
+            const message = document.getElementById('chatInput').value;
+            if (!message) return;
+            fetch('/chat', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({message: message})
+            });
+            document.getElementById('chatInput').value = '';
+        }
+        
+        function clearLogs() {
+            document.getElementById('logsContainer').innerHTML = '';
+            addLogToUI({type: 'info', msg: 'Yeni oturum baslatildi', time: new Date().toLocaleTimeString()});
+        }
+    </script>
 </body>
 </html>
     `);
 });
 
-app.get('/viewer', (req, res) => {
-    res.send(`<!DOCTYPE html><html><head><title>3D Viewer</title><style>body{margin:0;overflow:hidden;background:#000;}</style></head><body><canvas id="canvas"></canvas><script>const ws=new WebSocket('ws://'+location.hostname+':3001');ws.binaryType='arraybuffer';</script></body></html>`);
+// API Endpoints
+app.post('/start', express.json(), (req, res) => {
+    const username = req.body.username;
+    if (bot) bot.end();
+    
+    botUsername = username;
+    startBot();
+    res.json({ success: true });
 });
 
-app.post('/command', (req, res) => {
-    const cmd = req.body.command;
-    if (botInstance && botInstance.chat) {
-        botInstance.chat(cmd);
-        addLog(`Command sent: ${cmd}`, 'chat');
+app.post('/stop', (req, res) => {
+    if (bot) {
+        bot.end();
+        bot = null;
+    }
+    botStatus = 'offline';
+    addLog('Bot durduruldu', 'info');
+    io.emit('status', { status: 'offline', username: null });
+    res.json({ success: true });
+});
+
+app.post('/chat', express.json(), (req, res) => {
+    const message = req.body.message;
+    if (bot && bot.chat && message) {
+        bot.chat(message);
+        addLog(`Bot: ${message}`, 'chat');
     }
     res.json({ success: true });
 });
 
-app.get('/toggle/:module', (req, res) => {
-    const m = req.params.module;
-    if (modules[m] !== undefined) { modules[m] = !modules[m]; addLog(`${m} toggled: ${modules[m] ? 'ON' : 'OFF'}`); io.emit('modules', modules); }
-    res.json({ [m]: modules[m] });
+server.listen(PORT, () => {
+    console.log(`ChatCraft Clone: http://localhost:${PORT}`);
+    addLog('Sunucu baslatildi', 'info');
 });
-
-app.get('/stats', (req, res) => {
-    res.json({
-        cropsPlanted: stats.cropsPlanted, cropsHarvested: stats.cropsHarvested,
-        blocksMined: stats.blocksMined, diamondsFound: stats.diamondsFound,
-        enemiesKilled: stats.enemiesKilled,
-        posX: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.x) : 0,
-        posY: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.y) : 0,
-        posZ: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.z) : 0
-    });
-});
-
-setInterval(() => {
-    io.emit('stats', {
-        cropsPlanted: stats.cropsPlanted, cropsHarvested: stats.cropsHarvested,
-        blocksMined: stats.blocksMined, diamondsFound: stats.diamondsFound,
-        enemiesKilled: stats.enemiesKilled,
-        posX: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.x) : 0,
-        posY: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.y) : 0,
-        posZ: botInstance && botInstance.entity ? Math.floor(botInstance.entity.position.z) : 0
-    });
-    io.emit('modules', modules);
-}, 2000);
 
 startBot();
-server.listen(PORT, () => { console.log(`Dashboard: http://localhost:${PORT}`); addLog(`Server started on port ${PORT}`); });
