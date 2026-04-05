@@ -1,6 +1,6 @@
 {
   "name": "afk-bot-aesirmc",
-  "version": "8.0.0",
+  "version": "9.0.0",
   "description": "Full AFK Bot for Aesirmc ASMP",
   "main": "bot.js",
   "scripts": {
@@ -16,6 +16,8 @@
     "prismarine-viewer": "^1.28.0",
     "socket.io": "^4.6.1",
     "axios": "^1.6.0",
-    "canvas": "^2.11.2"
+    "canvas": "^2.11.2",
+    "vec3": "^0.1.8",
+    "minecraft-data": "^3.66.0"
   }
 }
