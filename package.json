@@ -1,0 +1,13 @@
+{
+  "name": "mc-afk-bot",
+  "version": "1.0.0",
+  "description": "7/24 MC AFK Bot",
+  "main": "bot.js",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "mineflayer": "latest",
+    "express": "latest"
+  }
+}
