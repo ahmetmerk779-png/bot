@@ -1,80 +1,58 @@
 const mineflayer = require('mineflayer');
 const express = require('express');
 
+// --- UPTIME ROBOT İÇİN GEREKLİ (DOKUNMA) ---
 const app = express();
-const port = process.env.PORT || 3000;
+app.get('/', (req, res) => res.send('Bot Kaydedildi ve Aktif!'));
+app.listen(process.env.PORT || 3000);
 
-// Botun durumunu saklamak için bir obje
-let botDurum = {
-    durum: "Başlatılıyor...",
-    can: 0,
-    aclik: 0,
-    konum: "Bilinmiyor",
-    sunucu: process.env.IP || 'Ayarlanmadı'
-};
-
-// --- CANLI PANEL SAYFASI ---
-app.get('/', (req, res) => {
-    res.send(`
-        <div style="font-family:sans-serif; background:#121212; color:white; padding:20px; border-radius:10px; width:300px;">
-            <h2 style="color:#00ff00;">MC Bot Kontrol Paneli</h2>
-            <hr>
-            <p><b>Durum:</b> ${botDurum.durum}</p>
-            <p><b>Sunucu:</b> ${botDurum.sunucu}</p>
-            <p><b>Bot İsmi:</b> ${process.env.ISIM || 'AFK_Bot'}</p>
-            <p><b>Can:</b> ❤️ %${botDurum.can * 5}</p>
-            <p><b>Açlık:</b> 🍖 ${botDurum.aclik}</p>
-            <p><b>Konum:</b> ${botDurum.konum}</p>
-            <button onclick="location.reload()" style="background:#00ff00; border:none; padding:10px; cursor:pointer; border-radius:5px;">Yenile</button>
-        </div>
-    `);
-});
-
-app.listen(port);
-
+// --- DASHBOARD'DAN BİLGİLERİ OKUR ---
+// Render Dashboard -> Environment sekmesindeki bilgileri çeker.
 const botAyarlari = {
-    host: process.env.IP || 'play.sunucu.com',
+    host: process.env.IP,       // Dashboard'da IP kısmına yazdığın servera gider
     port: parseInt(process.env.PORT_MC) || 25565,
-    username: process.env.ISIM || 'Mahmutcan_Bot',
-    version: process.env.SURUM || '1.20.1',
+    username: process.env.ISIM, // Dashboard'da ISIM kısmına ne yazarsan o olur
+    version: process.env.SURUM, // Dashboard'da SURUM kısmına ne yazarsan o olur
     auth: 'offline'
 };
 
 function botuBaslat() {
+    // Eğer Dashboard boşsa botu başlatma, hata ver (Yanlış IP aramasın)
+    if (!botAyarlari.host || !botAyarlari.username) {
+        console.log("--------------------------------------------------");
+        console.log("HATA: Render Dashboard'dan IP ve ISIM yazıp 'Save' yapmalısın!");
+        console.log("--------------------------------------------------");
+        return;
+    }
+
     const bot = mineflayer.createBot(botAyarlari);
 
     bot.on('spawn', () => {
-        botDurum.durum = "Sunucuda AFK";
-        console.log(`[BAŞARILI] Bot bağlandı.`);
-        if (process.env.SIFRE) bot.chat(`/login ${process.env.SIFRE}`);
-    });
-
-    // Her 2 saniyede bir panel verilerini güncelle
-    setInterval(() => {
-        if (bot.entity) {
-            botDurum.can = Math.round(bot.health);
-            botDurum.aclik = Math.round(bot.food);
-            botDurum.konum = `X: ${Math.round(bot.entity.position.x)} Y: ${Math.round(bot.entity.position.y)}`;
+        console.log(`[KAYIT BAŞARILI] Bot ${botAyarlari.host} adresinde aktif!`);
+        
+        // Dashboard'da SIFRE varsa otomatik yazar
+        if (process.env.SIFRE) {
+            setTimeout(() => bot.chat(`/login ${process.env.SIFRE}`), 2000);
         }
-    }, 2000);
-
-    bot.on('death', () => {
-        botDurum.durum = "Öldü (Doğuyor...)";
-        bot.respawn();
     });
 
-    bot.on('end', (reason) => {
-        botDurum.durum = "Bağlantı Koptu!";
-        setTimeout(botuBaslat, 10000);
-    });
+    // --- AUTO RESPAWN (Ölürse Doğ) ---
+    bot.on('death', () => bot.respawn());
 
-    // Anti-AFK
+    // --- ANTI-AFK (Sunucudan Atılma) ---
     setInterval(() => {
         if (bot.entity) {
             bot.setControlState('jump', true);
             setTimeout(() => bot.setControlState('jump', false), 500);
+            bot.look(bot.entity.yaw + 0.1, bot.entity.pitch);
         }
-    }, 25000);
+    }, 20000);
+
+    // --- AUTO RECONNECT (Düşerse Bağlan) ---
+    bot.on('end', (reason) => {
+        console.log(`Bağlantı koptu: ${reason}. 10sn sonra tekrar giriliyor...`);
+        setTimeout(botuBaslat, 10000);
+    });
 
     bot.on('error', (err) => console.log('Hata:', err.message));
 }
