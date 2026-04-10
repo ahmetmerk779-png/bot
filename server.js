@@ -1,7 +1,9 @@
 // ============================================================
 // Minecraft AFK Bot Kontrol Paneli - Gelişmiş Özellikler
 // ============================================================
-
+// ... bot.on('end', ... ) satırlarından sonra:
+bot.on('login', () => { console.log('[DEBUG] Giriş yapıldı.') });
+bot._client.on('error', (err) => { console.error('[DEBUG] Ham Socket Hatası:', err); });
 const express = require('express');
 const http = require('http');
 const socketIo = require('socket.io');
