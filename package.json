@@ -4,7 +4,7 @@
   "description": "BlockMine Minecraft bot paneli - Render'da 7/24 çalışır",
   "main": "server.js",
   "scripts": {
-    "start": "PORT=3001 npx blockmine & node server.js"
+    "start": "node server.js"
   },
   "dependencies": {
     "blockmine": "^1.25.0",
