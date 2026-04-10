@@ -1,18 +1,16 @@
 {
-  "name": "minecraft-afk-bot-panel",
-  "version": "4.3.0",
-  "description": "Render'da çalışan, mobil uyumlu AFK Bot Paneli",
+  "name": "blockmine-render",
+  "version": "1.0.0",
+  "description": "BlockMine Minecraft bot paneli - Render'da 7/24 çalışır",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "PORT=3001 npx blockmine & node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "socket.io": "^4.6.1",
-    "mineflayer": "^4.14.0",
-    "mineflayer-pathfinder": "^2.4.5"
+    "blockmine": "^1.25.0",
+    "express": "^4.18.2"
   },
   "engines": {
-    "node": "18.x"
+    "node": ">=22.0.0"
   }
 }
