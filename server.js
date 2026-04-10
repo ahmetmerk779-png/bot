@@ -1,18 +1,35 @@
 const express = require('express');
-const app = express();
-const port = process.env.PORT || 3000;
+const { spawn } = require('child_process');
 
-// Render'ı uyanık tutmak için UptimeRobot'un ping atacağı endpoint
+const app = express();
+// Render'ın atadığı PORT'u kullan
+const EXPRESS_PORT = process.env.PORT || 3000;
+
+// UptimeRobot için ping endpoint'i
 app.get('/ping', (req, res) => {
   res.status(200).send('OK');
 });
 
-// Ana sayfayı BlockMine'e yönlendir (opsiyonel)
-app.get('/', (req, res) => {
-  res.redirect('/');
+// BlockMine'i, Express'ten farklı bir portta başlat.
+// BlockMine varsayılan olarak 3001'i kullanır.
+// Render'da dışarıya sadece Express portu açık olacak,
+// ama BlockMine'e localhost üzerinden erişilebilecek.
+const blockmineProcess = spawn('npx', ['blockmine'], {
+  stdio: 'inherit',
+  shell: true,
+  env: {
+    ...process.env,
+    PORT: '3001', // BlockMine'in dahili portu
+    BLOCKMINE_HOST: '127.0.0.1' // Sadece localhost'tan erişilsin
+  }
 });
 
-app.listen(port, () => {
-  console.log(`🌐 Ping sunucusu ${port} portunda çalışıyor`);
-  console.log(`📱 BlockMine paneli aynı adreste hazır olacak`);
+blockmineProcess.on('error', (err) => {
+  console.error('BlockMine başlatılamadı:', err);
+});
+
+// Express sunucusunu Render'ın portunda başlat
+app.listen(EXPRESS_PORT, () => {
+  console.log(`🌐 Ping sunucusu ${EXPRESS_PORT} portunda çalışıyor`);
+  console.log(`📱 BlockMine paneli aynı adreste olacak`);
 });
