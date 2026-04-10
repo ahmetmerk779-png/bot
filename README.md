@@ -1,30 +1,30 @@
-# Minecraft AFK Bot Kontrol Paneli
+# BlockMine on Render
 
-Bu proje, Minecraft sunucularında AFK kalmak için gelişmiş bir bot ve onu yönetmek için mobil uyumlu bir web paneli içerir.
+Bu proje, BlockMine Minecraft bot panelini Render üzerinde 7/24 çalıştırmak için hazırlanmıştır.
 
 ## 🚀 Render'a Dağıtım
 
 1. Bu dosyaları bir GitHub reposuna yükleyin.
-2. [Render.com](https://render.com) üzerinden "New Web Service" oluşturun.
+2. Render.com'da "New Web Service" oluşturun.
 3. Reponuzu bağlayın.
 4. **Build Command:** `npm install`
 5. **Start Command:** `npm start`
-6. **Environment:** Node (>=18)
+6. **Environment:** Node (>=22)
 7. Deploy edin.
 
-## 🔧 Uyku Modunu Engelleme
+## ⏰ Uyku Modunu Engelleme
 
-Ücretsiz Render servisleri 15 dakika işlem yapılmazsa uykuya geçer. Bunu önlemek için [cron-job.org](https://cron-job.org) veya [UptimeRobot](https://uptimerobot.com) ile her 5 dakikada bir `https://sizin-app-adresiniz.onrender.com` adresine ping atın.
+Render ücretsiz servisler 15 dakika işlem yapılmazsa uykuya geçer. Bunu önlemek için:
 
-## 📱 Özellikler
+1. [UptimeRobot.com](https://uptimerobot.com) adresine gidin.
+2. Yeni bir HTTP(s) monitörü oluşturun.
+3. URL olarak `https://sizin-app-adresiniz.onrender.com/ping` girin.
+4. İzleme aralığını **5 dakika** olarak ayarlayın.
 
-- Microsoft / Mojang / Çevrimdışı hesap desteği
-- Otomatik yeniden bağlanma
-- Anti-AFK baş sallama
-- Can, açlık, konum, ping takibi
-- Sohbet ve komut gönderme
-- Mobil uyumlu arayüz (Tailwind CSS)
+## 📱 Mobil Kullanım
 
-## 📄 Lisans
+BlockMine paneli tamamen mobil uyumludur. Telefonunuzdan tarayıcı ile Render URL'nize giderek kullanabilirsiniz.
 
-MIT
+## 🧩 Eklenti Kurulumu
+
+Panel içindeki "Mağaza" bölümünden tek tıkla yeni özellikler ekleyebilirsiniz (AI Chat, Otomatik Balık vb.)
