@@ -1,5 +1,5 @@
 // ============================================================
-// Minecraft AFK Bot Kontrol Paneli - Prismarine Viewer ile Harita
+// Minecraft AFK Bot Kontrol Paneli - Stabil Sürüm
 // ============================================================
 
 const express = require('express');
@@ -7,7 +7,6 @@ const http = require('http');
 const socketIo = require('socket.io');
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const viewer = require('prismarine-viewer');
 
 // --- Sunucu Ayarları ---
 const app = express();
@@ -30,8 +29,6 @@ let currentAntiAfkMode = 'look';
 // Otomasyon durumları
 let autoEatEnabled = false;
 let autoTotemEnabled = false;
-let autoFishEnabled = false;
-let autoDumpChestEnabled = false;
 let autoPvEEnabled = false;
 
 // --- Yardımcı Fonksiyonlar ---
@@ -109,9 +106,6 @@ function createBot(config) {
     bot.loadPlugin(pathfinder);
     const mcData = require('minecraft-data')(bot.version);
     bot.pathfinder.setMovements(new Movements(bot, mcData));
-
-    // Prismarine Viewer başlat
-    viewer(bot, { port: 3001, firstPerson: true });
 
     startAntiAfk();
     if (statusInterval) clearInterval(statusInterval);
@@ -229,7 +223,6 @@ app.get('/', (req, res) => { res.send(`
     <h2 class="text-xl font-bold mb-4 text-indigo-400">AFK Bot Panel</h2>
     <nav class="space-y-1">
       <button data-tab="dashboard" class="w-full text-left p-2 rounded bg-blue-600 hover:bg-blue-700">🏠 Dashboard</button>
-      <button data-tab="map" class="w-full text-left p-2 rounded bg-green-600 hover:bg-green-700">🗺️ Canlı Harita</button>
       <button data-tab="inventory" class="w-full text-left p-2 rounded bg-yellow-600 hover:bg-yellow-700">🎒 Envanter</button>
       <button data-tab="control" class="w-full text-left p-2 rounded bg-purple-600 hover:bg-purple-700">🎮 Canlı Kontrol</button>
       <button data-tab="automation" class="w-full text-left p-2 rounded bg-pink-600 hover:bg-pink-700">⚙️ Otomasyonlar</button>
@@ -249,8 +242,6 @@ app.get('/', (req, res) => { res.send(`
       <div class="mt-4 flex gap-2"><input id="username" placeholder="Kullanıcı Adı" class="bg-gray-700 p-2 rounded"><input id="serverIp" placeholder="IP" class="bg-gray-700 p-2 rounded"><input id="serverPort" value="25565" class="bg-gray-700 p-2 rounded w-20"><button id="connectBtn" class="bg-green-600 p-2 rounded">Bağlan</button><button id="disconnectBtn" class="bg-red-600 p-2 rounded">Kes</button></div>
       <div class="mt-2"><input id="version" placeholder="Sürüm (örn: 1.18.2)" class="bg-gray-700 p-2 rounded w-full"></div>
     </div>
-
-    <div id="tab-map" class="tab-content hidden"><h1 class="text-2xl font-bold mb-4">Canlı Harita</h1><iframe id="mapFrame" src="/viewer" class="w-full h-[80vh] border-0 rounded"></iframe></div>
 
     <div id="tab-inventory" class="tab-content hidden"><h1 class="text-2xl font-bold mb-4">Envanter</h1><div id="invGrid" class="grid grid-cols-9 gap-1"></div></div>
 
@@ -296,7 +287,6 @@ app.get('/', (req, res) => { res.send(`
       btn.onclick = () => {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
         document.getElementById('tab-' + btn.dataset.tab).classList.remove('hidden');
-        if (btn.dataset.tab === 'map') document.getElementById('mapFrame').src = '/viewer';
         sidebar.classList.add('-translate-x-full');
       };
     });
@@ -352,8 +342,5 @@ app.get('/', (req, res) => { res.send(`
 </body>
 </html>
 `); });
-
-// Prismarine viewer için statik dosyaları servis et
-app.use('/viewer', express.static('node_modules/prismarine-viewer/public'));
 
 server.listen(PORT, () => console.log(`🌐 Panel http://localhost:${PORT}`));
