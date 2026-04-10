@@ -1,35 +1,44 @@
 const express = require('express');
 const { spawn } = require('child_process');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
-// Render'ın atadığı PORT'u kullan
-const EXPRESS_PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3000;
+const BLOCKMINE_PORT = 3001; // BlockMine'in dahili portu
 
-// UptimeRobot için ping endpoint'i
+// UptimeRobot için /ping endpoint'i (proxy'den önce tanımlanmalı)
 app.get('/ping', (req, res) => {
   res.status(200).send('OK');
 });
 
-// BlockMine'i, Express'ten farklı bir portta başlat.
-// BlockMine varsayılan olarak 3001'i kullanır.
-// Render'da dışarıya sadece Express portu açık olacak,
-// ama BlockMine'e localhost üzerinden erişilebilecek.
+// BlockMine'i arka planda başlat
 const blockmineProcess = spawn('npx', ['blockmine'], {
   stdio: 'inherit',
   shell: true,
   env: {
     ...process.env,
-    PORT: '3001', // BlockMine'in dahili portu
-    BLOCKMINE_HOST: '127.0.0.1' // Sadece localhost'tan erişilsin
+    PORT: BLOCKMINE_PORT,
+    HOST: '127.0.0.1'
   }
 });
 
 blockmineProcess.on('error', (err) => {
-  console.error('BlockMine başlatılamadı:', err);
+  console.error('❌ BlockMine başlatılamadı:', err);
 });
 
-// Express sunucusunu Render'ın portunda başlat
-app.listen(EXPRESS_PORT, () => {
-  console.log(`🌐 Ping sunucusu ${EXPRESS_PORT} portunda çalışıyor`);
-  console.log(`📱 BlockMine paneli aynı adreste olacak`);
+// Tüm diğer istekleri BlockMine'e yönlendiren proxy
+app.use(
+  '/',
+  createProxyMiddleware({
+    target: `http://127.0.0.1:${BLOCKMINE_PORT}`,
+    changeOrigin: true,
+    ws: true, // WebSocket desteği (canlı konsol için gerekli)
+    logLevel: 'silent'
+  })
+);
+
+// Express'i Render'ın atadığı portta dinlemeye başla
+app.listen(PORT, () => {
+  console.log(`🌐 Proxy sunucusu ${PORT} portunda çalışıyor`);
+  console.log(`📱 BlockMine panele https://sizin-adresiniz.onrender.com adresinden erişebilirsiniz`);
 });
