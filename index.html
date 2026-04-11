@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Birleşik Bot Kontrol Paneli</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      background-color: #1a1a1a;
+      color: white;
+    }
+    #viewer-container {
+      flex: 3;
+      height: 100vh;
+      position: relative;
+    }
+    #control-panel {
+      flex: 1;
+      background-color: #2d2d2d;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+      border-left: 1px solid #444;
+      overflow-y: auto;
+    }
+    button {
+      padding: 15px;
+      font-size: 18px;
+      font-weight: bold;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s, background-color 0.2s;
+      background-color: #4a4a4a;
+      color: white;
+    }
+    button:active {
+      transform: scale(0.98);
+    }
+    button.forward { background-color: #4CAF50; }
+    button.backward { background-color: #f44336; }
+    button.left { background-color: #2196F3; }
+    button.right { background-color: #2196F3; }
+    button.jump { background-color: #ff9800; }
+    button.sneak { background-color: #9c27b0; }
+    button.attack { background-color: #f44336; }
+    button.use { background-color: #00bcd4; }
+    .movement-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .info-panel {
+      background-color: #1e1e1e;
+      border-radius: 8px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+    h3 {
+      margin-top: 0;
+      text-align: center;
+      color: #ddd;
+    }
+    #connection-status {
+      padding: 10px;
+      border-radius: 5px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .connected { background-color: #2e7d32; }
+    .disconnected { background-color: #c62828; }
+  </style>
+</head>
+<body>
+  <div id="viewer-container">
+    <!-- 3D görüntüleyici burada oluşturulacak -->
+  </div>
+  <div id="control-panel">
+    <div id="connection-status" class="disconnected">Bot Bağlı Değil</div>
+    
+    <div class="info-panel">
+      <h3>Bağlantı Ayarları</h3>
+      <input type="text" id="server-ip" placeholder="Sunucu IP" value="play.aesirmc.fun" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #3a3a3a; border: 1px solid #555; color: white; border-radius: 5px; box-sizing: border-box;">
+      <input type="text" id="bot-username" placeholder="Bot Kullanıcı Adı" value="AFK_Bot" style="width: 100%; padding: 10px; margin-bottom: 10px; background: #3a3a3a; border: 1px solid #555; color: white; border-radius: 5px; box-sizing: border-box;">
+      <button id="connect-button" style="background-color: #4CAF50;">Sunucuya Bağlan</button>
+    </div>
+
+    <div class="info-panel">
+      <h3>Hareket Kontrolü</h3>
+      <div class="movement-grid">
+        <div></div>
+        <button class="forward" id="move-forward">▲ İleri</button>
+        <div></div>
+        <button class="left" id="move-left">◀ Sol</button>
+        <button class="backward" id="move-back">▼ Geri</button>
+        <button class="right" id="move-right">▶ Sağ</button>
+      </div>
+    </div>
+
+    <div class="info-panel">
+      <h3>Eylemler</h3>
+      <button class="jump" id="action-jump">Zıpla</button>
+      <button class="sneak" id="action-sneak">Eğil (Basılı Tut)</button>
+      <button class="attack" id="action-attack">Saldır / Kaz</button>
+      <button class="use" id="action-use">Kullan / Sağ Tık</button>
+    </div>
+
+    <div class="info-panel">
+      <h3>Bot Durumu</h3>
+      <p>❤️ Can: <span id="bot-health">---</span></p>
+      <p>🍗 Açlık: <span id="bot-food">---</span></p>
+      <p>📍 Konum: <span id="bot-position">---</span></p>
+    </div>
+  </div>
+  <script src="viewer.js"></script>
+</body>
+</html>
