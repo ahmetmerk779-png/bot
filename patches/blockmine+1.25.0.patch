@@ -1,0 +1,55 @@
+diff --git a/node_modules/blockmine/locales/en.json b/node_modules/blockmine/locales/tr.json
+new file mode 100644
+index 0000000..0000000
+--- /dev/null
++++ b/node_modules/blockmine/locales/tr.json
+@@ -0,0 +1,45 @@
++{
++  "dashboard": "Panel",
++  "settings": "Ayarlar",
++  "plugins": "Eklentiler",
++  "console": "Konsol",
++  "start": "Başlat",
++  "stop": "Durdur",
++  "restart": "Yeniden Başlat",
++  "health": "Can",
++  "food": "Açlık",
++  "position": "Konum",
++  "players": "Oyuncular",
++  "save": "Kaydet",
++  "cancel": "İptal",
++  "delete": "Sil",
++  "add_bot": "Bot Ekle",
++  "bot_name": "Bot Adı",
++  "server_ip": "Sunucu IP",
++  "connect": "Bağlan",
++  "disconnect": "Bağlantıyı Kes",
++  "username": "Kullanıcı Adı",
++  "password": "Şifre",
++  "version": "Sürüm",
++  "host": "Sunucu",
++  "port": "Port",
++  "language": "Dil",
++  "save_settings": "Ayarları Kaydet",
++  "reset": "Sıfırla",
++  "confirm": "Onayla",
++  "error": "Hata",
++  "success": "Başarılı",
++  "loading": "Yükleniyor...",
++  "no_bots": "Henüz bot eklenmemiş",
++  "add_first_bot": "İlk botunuzu ekleyin",
++  "memory_usage": "Bellek Kullanımı",
++  "cpu_usage": "CPU Kullanımı",
++  "uptime": "Çalışma Süresi",
++  "online": "Çevrimiçi",
++  "offline": "Çevrimdışı"
++}
+diff --git a/node_modules/blockmine/config.json b/node_modules/blockmine/config.json
+index 0000000..0000000
+--- a/node_modules/blockmine/config.json
++++ b/node_modules/blockmine/config.json
+@@ -1,3 +1,3 @@
+ {
+-  "language": "en"
++  "language": "tr"
+ }
