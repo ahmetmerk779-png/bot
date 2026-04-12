@@ -1,0 +1,20 @@
+{
+  "name": "minecraft-wasd-bot",
+  "version": "1.0.0",
+  "description": "Web paneli ile WASD kontrol, envanter yönetimi ve yapay zeka desteği olan Minecraft botu",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "mineflayer": "^4.14.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-auto-eat": "^2.3.0",
+    "prismarine-viewer": "^1.28.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
