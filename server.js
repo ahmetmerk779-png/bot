@@ -4,7 +4,14 @@ const socketIo = require('socket.io');
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const autoEat = require('mineflayer-auto-eat');
-const viewer = require('prismarine-viewer').mineflayer;
+
+// Prismarine viewer'ı güvenli şekilde yükle
+let viewer;
+try {
+  viewer = require('prismarine-viewer').mineflayer;
+} catch (err) {
+  console.warn('⚠️ prismarine-viewer yüklenemedi, harita devre dışı.');
+}
 
 const app = express();
 const server = http.createServer(app);
@@ -18,7 +25,6 @@ let botConfig = null;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 10;
 
-// Bot oluştur
 function createBot(config) {
   if (bot) bot.end();
 
@@ -35,7 +41,7 @@ function createBot(config) {
 
   bot.loadPlugin(pathfinder);
   bot.loadPlugin(autoEat);
-  bot.loadPlugin(viewer);
+  if (viewer) bot.loadPlugin(viewer);
 
   bot.once('spawn', () => {
     console.log(`✅ Bot sunucuya bağlandı: ${config.host}`);
@@ -44,7 +50,6 @@ function createBot(config) {
     const mcData = require('minecraft-data')(bot.version);
     bot.pathfinder.setMovements(new Movements(bot, mcData));
 
-    // Auto eat ayarları
     bot.autoEat.options = {
       priority: 'foodPoints',
       startAt: 14,
@@ -93,7 +98,6 @@ function startStatusUpdates() {
       ping: bot.player?.ping || 0
     });
 
-    // Envanter verisi
     const items = bot.inventory.slots.map((item, slot) => {
       if (!item) return null;
       return { slot, name: item.name, displayName: item.displayName || item.name, count: item.count };
@@ -102,7 +106,6 @@ function startStatusUpdates() {
   }, 500);
 }
 
-// Socket.IO
 io.on('connection', (socket) => {
   console.log('📱 Panel bağlandı');
 
@@ -121,7 +124,6 @@ io.on('connection', (socket) => {
     if (bot) bot.chat(msg);
   });
 
-  // WASD kontrol
   socket.on('set-control-state', ({ control, state }) => {
     if (bot) bot.setControlState(control, state);
   });
@@ -147,7 +149,6 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Envanter işlemleri
   socket.on('use-item', (slot) => {
     if (!bot) return;
     const item = bot.inventory.slots[slot];
