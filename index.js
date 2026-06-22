@@ -1,52 +1,59 @@
 const express = require('express');
 const { Groq } = require('groq-sdk');
+const { Octokit } = require("@octokit/rest");
 const fs = require('fs');
-const { Client } = require('ssh2');
-const multer = require('multer');
-
+const path = require('path');
 const app = express();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const upload = multer({ dest: '/tmp/' });
-const DB_FILE = './data.json';
+const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
 
 app.use(express.json());
 app.use(express.static('public'));
 
-// JSON "Veritabanı" Yönetimi
-const readLogs = () => JSON.parse(fs.existsSync(DB_FILE) ? fs.readFileSync(DB_FILE, 'utf8') : '{"logs": []}').logs;
-const writeLog = (msg) => {
-    let data = JSON.parse(fs.existsSync(DB_FILE) ? fs.readFileSync(DB_FILE, 'utf8') : '{"logs": []}');
-    data.logs.push(msg);
-    fs.writeFileSync(DB_FILE, JSON.stringify(data));
+const PROJECTS_DIR = path.join(__dirname, 'projects');
+if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR);
+
+const EXPERT_MODES = {
+    modding: "Sen kıdemli bir Minecraft Mod geliştiricisisin. (Fabric/Forge, Mixins). [CREATE: dosya_adi: içerik] ve [GITHUB: repo: dosya_adi: içerik] komutlarını kullan.",
+    design: "Sen bir UI/UX tasarımcısısın. Modern ve estetik arayüz şemaları oluştur.",
+    security: "Sen bir siber güvenlik uzmanısın. Kodun açıklarını bul ve zırhla.",
+    devops: "Sen bir sistem mimarısın. Ölçeklenebilir altyapılar kurgula."
 };
 
-app.post('/api/master', upload.single('file'), async (req, res) => {
-    const { komut } = req.body;
-    let context = req.file ? fs.readFileSync(req.file.path, 'utf8') : "";
-    const logs = readLogs().slice(-5).join('\n');
-
+app.post('/api/master-core', async (req, res) => {
+    const { task, mode } = req.body;
+    
     try {
-        const chat = await groq.chat.completions.create({
-            messages: [{ role: "system", content: "Sen otonom bir AI Mühendisisin. Yetkilerin: [CREATE: isim: içerik], [SSH: host: user: pass: komut]." }, 
-                       { role: "user", content: `BAĞLAM: ${context}\nSON LOGLAR: ${logs}\nGÖREV: ${komut}` }],
+        const response = await groq.chat.completions.create({
+            messages: [
+                { role: "system", content: EXPERT_MODES[mode] || "Sen otonom bir AI mühendisisin." },
+                { role: "user", content: task }
+            ],
             model: "llama-3.3-70b-versatile"
         });
 
-        const cevap = chat.choices[0].message.content;
-        writeLog(cevap);
+        const cevap = response.choices[0].message.content;
 
+        // Dosya Oluşturma Yetkisi
         if (cevap.includes('[CREATE:')) {
-            const m = cevap.match(/\[CREATE: (.*?): (.*?)\]/);
-            fs.writeFileSync(m[1], m[2]);
-            res.json({ sonuc: "Oluşturuldu: " + m[1] });
-        } else if (cevap.includes('[SSH:')) {
-            const m = cevap.match(/\[SSH: (.*?): (.*?): (.*?): (.*?)\]/);
-            const conn = new Client();
-            conn.on('ready', () => conn.exec(m[4], (e, s) => s.on('data', d => res.json({sonuc: d.toString()}))).connect({host: m[1], username: m[2], password: m[3]}));
-        } else {
-            res.json({ sonuc: cevap });
+            const match = cevap.match(/\[CREATE: (.*?): ([\s\S]*?)\]/);
+            if (match) fs.writeFileSync(path.join(__dirname, match[1]), match[2]);
         }
-    } catch (e) { res.json({ sonuc: "Hata: " + e.message }); }
+
+        // GitHub Transfer Yetkisi
+        if (cevap.includes('[GITHUB:')) {
+            const match = cevap.match(/\[GITHUB: (.*?): (.*?): ([\s\S]*?)\]/);
+            await octokit.repos.createOrUpdateFileContents({
+                owner: 'SENIN_USERNAME', // Burayı kendi kullanıcı adınla değiştir!
+                repo: match[1],
+                path: match[2],
+                message: 'AI-Forge otomatik güncelleme',
+                content: Buffer.from(match[3]).toString('base64')
+            });
+        }
+
+        res.json({ sonuc: cevap, needsApproval: cevap.includes('?') });
+    } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Sistem Aktif!"));
+app.listen(process.env.PORT || 3000);
