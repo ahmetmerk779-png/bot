@@ -1,6 +1,5 @@
 const express = require('express');
 const { Groq } = require('groq-sdk');
-const { exec } = require('child_process');
 const fs = require('fs');
 const sqlite3 = require('sqlite3').verbose();
 const { Client } = require('ssh2');
@@ -9,24 +8,22 @@ const multer = require('multer');
 const app = express();
 const db = new sqlite3.Database('./studio.db');
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ dest: '/tmp/' }); // Render'da sadece /tmp klasörü yazılabilir
 
 app.use(express.json());
 app.use(express.static('public'));
 
-// Başlangıç Kurulumu
 db.run("CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, msg TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP)");
 
 app.post('/api/master', upload.single('file'), async (req, res) => {
     const { komut, model } = req.body;
     let context = req.file ? fs.readFileSync(req.file.path, 'utf8') : "";
     
-    // Log Analizi (Bug Hunter)
-    const logs = await new Promise(r => db.all("SELECT msg FROM logs ORDER BY id DESC LIMIT 5", (e, rows) => r(rows.map(x => x.msg).join('\n'))));
+    const logs = await new Promise(r => db.all("SELECT msg FROM logs ORDER BY id DESC LIMIT 5", (e, rows) => r(rows ? rows.map(x => x.msg).join('\n') : "")));
 
     try {
         const chat = await groq.chat.completions.create({
-            messages: [{ role: "system", content: "Sen otonom bir AI Mühendisisin. Yetkilerin: [CREATE: isim: içerik], [COMPILE: isim], [SSH: host: user: pass: komut], [DB: sql], [IMAGE: açıklama]. Sistemin RAG ve Hata Takip yetenekleri var." }, 
+            messages: [{ role: "system", content: "Sen otonom bir AI Mühendisisin. Yetkilerin: [CREATE: isim: içerik], [COMPILE: isim], [SSH: host: user: pass: komut], [DB: sql]. Sistemde RAG ve Hata Takip yetenekleri aktif." }, 
                        { role: "user", content: `BAĞLAM: ${context}\nSON HATALAR: ${logs}\nGÖREV: ${komut}` }],
             model: model || "llama-3.3-70b-versatile"
         });
@@ -34,19 +31,14 @@ app.post('/api/master', upload.single('file'), async (req, res) => {
         const cevap = chat.choices[0].message.content;
         db.run("INSERT INTO logs (msg) VALUES (?)", [cevap]);
 
-        // Karar Mekanizması
         if (cevap.includes('[CREATE:')) {
             const m = cevap.match(/\[CREATE: (.*?): (.*?)\]/);
             fs.writeFileSync(m[1], m[2]);
-            res.json({ sonuc: "Oluşturuldu: " + m[1] });
-        } else if (cevap.includes('[SSH:')) {
-            const m = cevap.match(/\[SSH: (.*?): (.*?): (.*?): (.*?)\]/);
-            const conn = new Client();
-            conn.on('ready', () => conn.exec(m[4], (e, s) => s.on('data', d => res.json({sonuc: d.toString()}))).connect({host: m[1], username: m[2], password: m[3]}));
+            res.json({ sonuc: "Dosya oluşturuldu: " + m[1] });
         } else {
             res.json({ sonuc: cevap });
         }
     } catch (e) { res.json({ sonuc: "Hata: " + e.message }); }
 });
 
-app.listen(3000, () => console.log("Master Node 3000 portunda aktif!"));
+app.listen(process.env.PORT || 3000, () => console.log("Sistem Aktif!"));
