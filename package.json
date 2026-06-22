@@ -1,12 +1,12 @@
 {
-  "name": "ai-master-studio",
+  "name": "ai-forge-master",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": { "start": "node index.js" },
   "dependencies": {
     "express": "latest",
     "groq-sdk": "latest",
-    "ssh2": "latest",
-    "multer": "latest"
+    "multer": "latest",
+    "@octokit/rest": "latest"
   }
 }
