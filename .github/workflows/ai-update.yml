@@ -1,1 +1,16 @@
-Bir Minecraft botu için temel express sunucusu oluştur. Sadece kodu ver.
+- name: AI Geliştirme
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: |
+          PROMPT=$(cat prompt.txt)
+          # AI'ya tüm proje yapısını veriyoruz
+          FILES=$(ls -R)
+          response=$(curl -s -X POST "https://api.groq.com/openai/v1/chat/completions" \
+          -H "Authorization: Bearer $GROQ_API_KEY" \
+          -H "Content-Type: application/json" \
+          -d '{
+            "model": "llama-3.3-70b-versatile",
+            "messages": [{"role": "user", "content": "Sen bir süper yazılımcısın. Şu anki dosyalarım şunlar: '"$FILES"'. İsteğim şu: '"$PROMPT"'. Sadece güncellenmesi gereken dosyanın içeriğini tam olarak ver."}]
+          }')
+          # Cevabı al ve dosyayı güncelle (Bu versiyon çok daha zeki)
+          echo "$response" | jq -r '.choices[0].message.content' > update.json
