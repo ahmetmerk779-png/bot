@@ -1,12 +1,12 @@
 {
-  "name": "otonom-ajan",
+  "name": "ai-master-studio",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
     "express": "^4.18.2",
-    "groq-sdk": "^0.3.3"
-  },
-  "scripts": {
-    "start": "node index.js"
+    "groq-sdk": "^0.3.3",
+    "sqlite3": "^5.1.7",
+    "ssh2": "^1.15.0",
+    "multer": "^1.4.5"
   }
 }
