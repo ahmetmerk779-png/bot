@@ -1,53 +1,32 @@
 const express = require('express');
-const app = express();
+const { Groq } = require('groq-sdk');
+const { exec } = require('child_process');
+const path = require('path');
 
-app.get('/', (req, res) => {
-    res.send(`
-        <html>
-        <head>
-            <style>
-                body { 
-                    background-color: #121212; 
-                    color: white; 
-                    font-family: sans-serif; 
-                    display: flex; 
-                    justify-content: center; 
-                    align-items: center; 
-                    height: 100vh; 
-                    margin: 0; 
-                }
-                .card { 
-                    background: rgba(30, 30, 30, 0.6); 
-                    backdrop-filter: blur(20px); 
-                    padding: 40px; 
-                    border-radius: 20px; 
-                    text-align: center; 
-                    border: 1px solid rgba(255,255,255,0.1);
-                    width: 300px;
-                }
-                .status { color: #1DB954; font-weight: bold; margin-top: 10px; }
-                button { 
-                    margin-top: 20px; 
-                    background: #1DB954; 
-                    border: none; 
-                    padding: 12px 25px; 
-                    border-radius: 25px; 
-                    color: white; 
-                    font-weight: bold; 
-                    cursor: pointer;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="card">
-                <h1>asmp</h1>
-                <p>Kontrol Paneli</p>
-                <div class="status">● SİSTEM AKTİF</div>
-                <button onclick="alert('Bot kontrol ediliyor...')">Yenile</button>
-            </div>
-        </body>
-        </html>
-    `);
+const app = express();
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+app.use(express.json());
+app.use(express.static('public')); // HTML dosyanı 'public' klasörüne koy
+
+app.post('/api/komut', async (req, res) => {
+    const { gorev } = req.body;
+    try {
+        const chat = await groq.chat.completions.create({
+            messages: [{ role: "user", content: `Sen otonom bir yazılımcısın. Şu görevi yapmak için gereken terminal komutunu tek satırda döndür: ${gorev}` }],
+            model: "llama3-70b-8192",
+        });
+
+        const komut = chat.choices[0].message.content.replace(/`/g, '');
+        
+        exec(komut, (err, stdout, stderr) => {
+            if (err) return res.json({ sonuc: "Hata: " + err.message });
+            res.json({ sonuc: "Komut Çalıştı: " + (stdout || "İşlem tamamlandı.") });
+        });
+    } catch (error) {
+        res.json({ sonuc: "AI Hatası: " + error.message });
+    }
 });
 
-app.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Ajan ${PORT} portunda dinliyor.`));
