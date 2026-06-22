@@ -1,42 +1,36 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Süper Yazılım Ajanı</title>
     <style>
-        body { background: #0a0a0a; color: #e0e0e0; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        #chat-box { width: 100%; max-width: 700px; height: 500px; border: 1px solid #222; overflow-y: auto; padding: 20px; background: #121212; border-radius: 12px; margin-bottom: 20px; }
-        .msg { margin-bottom: 15px; padding: 10px; border-radius: 8px; background: #1a1a1a; line-height: 1.5; }
-        .input-group { width: 100%; max-width: 700px; display: flex; gap: 10px; }
-        input { flex: 1; padding: 15px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #fff; }
-        button { padding: 10px 25px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        body { margin:0; display:flex; height:100vh; background:#0d1117; color:#c9d1d9; font-family:monospace; }
+        #sidebar { width:200px; border-right:1px solid #30363d; padding:10px; }
+        #main { flex:1; display:flex; flex-direction:column; }
+        #editor { flex:1; background:#010409; color:#58a6ff; width:100%; border:none; padding:10px; }
+        #terminal { height:200px; background:#000; color:#0f0; padding:10px; overflow-y:auto; border-top:1px solid #30363d; }
     </style>
 </head>
 <body>
-    <h2>Yapay Zeka Ortak</h2>
-    <div id="chat-box"></div>
-    <div class="input-group">
-        <input type="text" id="userInput" placeholder="Bir şey sor veya bir görev ver...">
-        <button onclick="gonder()">Gönder</button>
+    <div id="sidebar"><h3>Dosyalar</h3><div id="file-list"></div></div>
+    <div id="main">
+        <textarea id="editor" placeholder="Kodunu düzenle..."></textarea>
+        <div id="terminal"><div id="out"></div><input id="cmd" placeholder="Komut..."></div>
     </div>
-
     <script>
-        async function gonder() {
-            const input = document.getElementById('userInput');
-            const box = document.getElementById('chat-box');
-            if(!input.value) return;
-            box.innerHTML += `<div class="msg"><b>Sen:</b> ${input.value}</div>`;
-            const mesaj = input.value;
-            input.value = '';
-            const res = await fetch('/api/komut', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ gorev: mesaj })
-            });
-            const data = await res.json();
-            box.innerHTML += `<div class="msg" style="color: #4ade80;"><b>Ajan:</b> ${data.sonuc.replace(/\n/g, '<br>')}</div>`;
-            box.scrollTop = box.scrollHeight;
+        async function loadFiles() {
+            const files = await (await fetch('/api/dosyalar')).json();
+            document.getElementById('file-list').innerHTML = files.map(f => `<button onclick="readFile('${f}')">${f}</button>`).join('<br>');
         }
+        async function readFile(f) {
+            const content = await (await fetch('/api/oku?file='+f)).text();
+            document.getElementById('editor').value = content;
+        }
+        async function run() {
+            const cmd = document.getElementById('cmd').value;
+            const res = await (await fetch('/api/komut', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({gorev:cmd})})).json();
+            document.getElementById('out').innerHTML += `<div>$ ${cmd}<br>${res.sonuc}</div>`;
+        }
+        document.getElementById('cmd').onkeypress = (e) => { if(e.key=='Enter') run(); };
+        loadFiles();
     </script>
 </body>
 </html>
