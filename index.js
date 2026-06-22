@@ -14,36 +14,31 @@ const upload = multer({ dest: 'uploads/' });
 app.use(express.json());
 app.use(express.static('public'));
 
-// Tablolar ve Başlangıç
-db.run("CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, mesaj TEXT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP)");
+// Başlangıç Kurulumu
+db.run("CREATE TABLE IF NOT EXISTS logs (id INTEGER PRIMARY KEY, msg TEXT, ts DATETIME DEFAULT CURRENT_TIMESTAMP)");
 
-// Master AI API
 app.post('/api/master', upload.single('file'), async (req, res) => {
     const { komut, model } = req.body;
-    let context = "";
+    let context = req.file ? fs.readFileSync(req.file.path, 'utf8') : "";
     
-    // RAG: Dosya varsa oku
-    if (req.file) context += "DOSYA İÇERİĞİ: " + fs.readFileSync(req.file.path, 'utf8');
-    
-    // Bug Hunter: Son logları çek
-    const loglar = await new Promise(r => db.all("SELECT mesaj FROM logs ORDER BY id DESC LIMIT 5", (e, rows) => r(rows.map(x => x.mesaj).join('\n'))));
-    context += "\nSON LOGLAR: " + loglar;
+    // Log Analizi (Bug Hunter)
+    const logs = await new Promise(r => db.all("SELECT msg FROM logs ORDER BY id DESC LIMIT 5", (e, rows) => r(rows.map(x => x.msg).join('\n'))));
 
     try {
         const chat = await groq.chat.completions.create({
             messages: [{ role: "system", content: "Sen otonom bir AI Mühendisisin. Yetkilerin: [CREATE: isim: içerik], [COMPILE: isim], [SSH: host: user: pass: komut], [DB: sql], [IMAGE: açıklama]. Sistemin RAG ve Hata Takip yetenekleri var." }, 
-                       { role: "user", content: `BAĞLAM: ${context}. GÖREV: ${komut}` }],
+                       { role: "user", content: `BAĞLAM: ${context}\nSON HATALAR: ${logs}\nGÖREV: ${komut}` }],
             model: model || "llama-3.3-70b-versatile"
         });
 
         const cevap = chat.choices[0].message.content;
-        db.run("INSERT INTO logs (mesaj) VALUES (?)", [cevap]);
+        db.run("INSERT INTO logs (msg) VALUES (?)", [cevap]);
 
-        // Otonom Karar Mekanizması
+        // Karar Mekanizması
         if (cevap.includes('[CREATE:')) {
             const m = cevap.match(/\[CREATE: (.*?): (.*?)\]/);
             fs.writeFileSync(m[1], m[2]);
-            res.json({ sonuc: "Dosya oluşturuldu: " + m[1] });
+            res.json({ sonuc: "Oluşturuldu: " + m[1] });
         } else if (cevap.includes('[SSH:')) {
             const m = cevap.match(/\[SSH: (.*?): (.*?): (.*?): (.*?)\]/);
             const conn = new Client();
@@ -51,7 +46,7 @@ app.post('/api/master', upload.single('file'), async (req, res) => {
         } else {
             res.json({ sonuc: cevap });
         }
-    } catch (e) { res.json({ sonuc: "Sistem Hatası: " + e.message }); }
+    } catch (e) { res.json({ sonuc: "Hata: " + e.message }); }
 });
 
-app.listen(3000, () => console.log("AI İstasyonu Aktif!"));
+app.listen(3000, () => console.log("Master Node 3000 portunda aktif!"));
