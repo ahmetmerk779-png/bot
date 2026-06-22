@@ -44,7 +44,7 @@ app.post('/api/master-core', async (req, res) => {
         if (cevap.includes('[GITHUB:')) {
             const match = cevap.match(/\[GITHUB: (.*?): (.*?): ([\s\S]*?)\]/);
             await octokit.repos.createOrUpdateFileContents({
-                owner: 'SENIN_USERNAME', // Burayı kendi kullanıcı adınla değiştir!
+                owner: 'ahmetmerk779', // Burayı kendi kullanıcı adınla değiştir!
                 repo: match[1],
                 path: match[2],
                 message: 'AI-Forge otomatik güncelleme',
