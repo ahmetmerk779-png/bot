@@ -1,59 +1,55 @@
+require('dotenv').config();
 const express = require('express');
-const { Groq } = require('groq-sdk');
-const { Octokit } = require("@octokit/rest");
 const fs = require('fs');
 const path = require('path');
-const app = express();
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-const octokit = new Octokit({ auth: process.env.GITHUB_TOKEN });
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
+const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 const PROJECTS_DIR = path.join(__dirname, 'projects');
+
+// Klasör yoksa oluştur
 if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR);
 
-const EXPERT_MODES = {
-    modding: "Sen kıdemli bir Minecraft Mod geliştiricisisin. (Fabric/Forge, Mixins). [CREATE: dosya_adi: içerik] ve [GITHUB: repo: dosya_adi: içerik] komutlarını kullan.",
-    design: "Sen bir UI/UX tasarımcısısın. Modern ve estetik arayüz şemaları oluştur.",
-    security: "Sen bir siber güvenlik uzmanısın. Kodun açıklarını bul ve zırhla.",
-    devops: "Sen bir sistem mimarısın. Ölçeklenebilir altyapılar kurgula."
-};
-
-app.post('/api/master-core', async (req, res) => {
-    const { task, mode } = req.body;
+app.post('/api/composer', async (req, res) => {
+    const { task } = req.body;
+    const files = fs.readdirSync(PROJECTS_DIR);
     
+    // Proje bağlamını oluştur
+    let context = "MEVCUT PROJE DOSYALARI:\n";
+    files.forEach(f => {
+        const content = fs.readFileSync(path.join(PROJECTS_DIR, f), 'utf8');
+        context += `\n--- DOSYA: ${f} ---\n${content}\n`;
+    });
+
     try {
-        const response = await groq.chat.completions.create({
-            messages: [
-                { role: "system", content: EXPERT_MODES[mode] || "Sen otonom bir AI mühendisisin." },
-                { role: "user", content: task }
-            ],
-            model: "llama-3.3-70b-versatile"
-        });
+        const response = await model.generateContent(`
+            Sen bir Cursor Composer'sın. Aşağıdaki proje yapısını analiz et ve kullanıcının isteğini yerine getir.
+            ${context}
+            İSTEK: ${task}
+            
+            KURAL: Değiştireceğin her dosya için [EDIT: dosya_adi] kod_blogu [/EDIT] bloğu kullan.
+            Tüm dosya içeriğini tam ve eksiksiz yaz.
+        `);
 
-        const cevap = response.choices[0].message.content;
+        const output = response.response.text();
+        const editRegex = /\[EDIT: (.+?)\]([\s\S]*?)\[\/EDIT\]/g;
+        let match;
+        let modifiedFiles = [];
 
-        // Dosya Oluşturma Yetkisi
-        if (cevap.includes('[CREATE:')) {
-            const match = cevap.match(/\[CREATE: (.*?): ([\s\S]*?)\]/);
-            if (match) fs.writeFileSync(path.join(__dirname, match[1]), match[2]);
+        while ((match = editRegex.exec(output)) !== null) {
+            fs.writeFileSync(path.join(PROJECTS_DIR, match[1].trim()), match[2].trim());
+            modifiedFiles.push(match[1].trim());
         }
 
-        // GitHub Transfer Yetkisi
-        if (cevap.includes('[GITHUB:')) {
-            const match = cevap.match(/\[GITHUB: (.*?): (.*?): ([\s\S]*?)\]/);
-            await octokit.repos.createOrUpdateFileContents({
-                owner: 'ahmetmerk779', // Burayı kendi kullanıcı adınla değiştir!
-                repo: match[1],
-                path: match[2],
-                message: 'AI-Forge otomatik güncelleme',
-                content: Buffer.from(match[3]).toString('base64')
-            });
-        }
-
-        res.json({ sonuc: cevap, needsApproval: cevap.includes('?') });
-    } catch (err) { res.status(500).json({ error: err.message }); }
+        res.json({ success: true, modified: modifiedFiles, raw: output });
+    } catch (err) {
+        res.status(500).json({ success: false, error: err.message });
+    }
 });
 
-app.listen(process.env.PORT || 3000);
+app.listen(3000, () => console.log('Composer sunucusu 3000 portunda aktif.'));
