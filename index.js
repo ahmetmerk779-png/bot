@@ -1,6 +1,7 @@
 const express = require('express');
 const { Groq } = require('groq-sdk');
 const { exec } = require('child_process');
+const fs = require('fs');
 
 const app = express();
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -10,26 +11,36 @@ app.use(express.static('public'));
 
 app.post('/api/komut', async (req, res) => {
     const { gorev } = req.body;
+    const dosyalar = fs.readdirSync('.').join(', ');
+
     try {
-        // Ajanı daha akıllı ve sınırları belli bir moda alıyoruz
         const chat = await groq.chat.completions.create({
             messages: [{ 
                 role: "system", 
-                content: "Sen uzman bir Linux sistem yöneticisi ve yazılım geliştiricisisin. Sana verilen her görevi terminal komutlarıyla gerçekleştir. Sadece komutu döndür. Açıklama yapma. Asla `nmap`, `ping` gibi gereksiz araçlar çalıştırma. Dosya oluşturmak için 'echo', dosya yazmak için 'printf', paket kurmak için 'npm install' kullan." 
+                content: `Sen üst düzey bir AI Yazılım Mühendisi ve Araştırmacısın. 
+                Projedeki mevcut dosyalar: ${dosyalar}. 
+                Görevin kullanıcıyla teknik tartışmalar yapmak, fikir üretmek ve kod yazmak.
+                Eğer bir sorunu çözmek için terminale ihtiyacın olursa, sadece 'exec: komut' formatını kullan. 
+                Bunun dışında normal bir uzman gibi, derinlemesine ve detaylı cevaplar ver.` 
             },
             { role: "user", content: gorev }],
             model: "llama-3.3-70b-versatile",
         });
 
-        const komut = chat.choices[0].message.content.replace(/`/g, '');
-        
-        exec(komut, (err, stdout, stderr) => {
-            if (err) return res.json({ sonuc: "Hata: " + err.message });
-            res.json({ sonuc: stdout || "Görev başarıyla tamamlandı: " + komut });
-        });
+        const cevap = chat.choices[0].message.content;
+
+        if (cevap.includes('exec:')) {
+            const komut = cevap.split('exec:')[1].split('\n')[0].trim();
+            exec(komut, (err, stdout) => {
+                res.json({ sonuc: cevap + "\n\n--- [Sistem Aksiyonu]: " + (stdout || "İşlem yapıldı.") });
+            });
+        } else {
+            res.json({ sonuc: cevap });
+        }
     } catch (error) {
-        res.json({ sonuc: "AI Hatası: " + error.message });
+        res.json({ sonuc: "Bir hata oluştu ama ben buradayım: " + error.message });
     }
 });
 
-app.listen(process.env.PORT || 3000);
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Ajan ${PORT} portunda çalışıyor.`));
