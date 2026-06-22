@@ -9,31 +9,21 @@ app.use(express.json());
 app.use(express.static('public'));
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
-const PROJECTS_DIR = path.join(__dirname, 'projects');
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-// Klasör yoksa oluştur
-if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR);
+// Proje klasörünü ana dizinde garanti altına al
+const PROJECTS_DIR = path.join(__dirname, 'projects');
+if (!fs.existsSync(PROJECTS_DIR)) {
+    fs.mkdirSync(PROJECTS_DIR);
+}
 
 app.post('/api/composer', async (req, res) => {
     const { task } = req.body;
-    const files = fs.readdirSync(PROJECTS_DIR);
-    
-    // Proje bağlamını oluştur
-    let context = "MEVCUT PROJE DOSYALARI:\n";
-    files.forEach(f => {
-        const content = fs.readFileSync(path.join(PROJECTS_DIR, f), 'utf8');
-        context += `\n--- DOSYA: ${f} ---\n${content}\n`;
-    });
-
     try {
         const response = await model.generateContent(`
-            Sen bir Cursor Composer'sın. Aşağıdaki proje yapısını analiz et ve kullanıcının isteğini yerine getir.
-            ${context}
-            İSTEK: ${task}
-            
-            KURAL: Değiştireceğin her dosya için [EDIT: dosya_adi] kod_blogu [/EDIT] bloğu kullan.
-            Tüm dosya içeriğini tam ve eksiksiz yaz.
+            Sen bir Minecraft mod geliştiricisi ve asmp bot sistemleri uzmanısın. 
+            İstek: ${task}.
+            Kural: [EDIT: dosya_adi] kod_icerigi [/EDIT] formatında yanıt ver.
         `);
 
         const output = response.response.text();
@@ -42,14 +32,15 @@ app.post('/api/composer', async (req, res) => {
         let modifiedFiles = [];
 
         while ((match = editRegex.exec(output)) !== null) {
-            fs.writeFileSync(path.join(PROJECTS_DIR, match[1].trim()), match[2].trim());
-            modifiedFiles.push(match[1].trim());
+            const fileName = match[1].trim();
+            fs.writeFileSync(path.join(PROJECTS_DIR, fileName), match[2].trim());
+            modifiedFiles.push(fileName);
         }
 
-        res.json({ success: true, modified: modifiedFiles, raw: output });
+        res.json({ success: true, modified: modifiedFiles, fullResponse: output });
     } catch (err) {
-        res.status(500).json({ success: false, error: err.message });
+        res.status(500).json({ error: err.message });
     }
 });
 
-app.listen(3000, () => console.log('Composer sunucusu 3000 portunda aktif.'));
+app.listen(3000, () => console.log('Composer motoru aktif.'));
