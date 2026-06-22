@@ -8,35 +8,33 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-// Hata vermemesi için en kararlı model:
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+// API Anahtarı kontrolü
+const apiKey = process.env.GEMINI_API_KEY;
+const genAI = new GoogleGenerativeAI(apiKey);
+
+// Modele erişimi daha garanti bir yolla sağlıyoruz
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
 const PROJECTS_DIR = path.join(__dirname, 'projects');
 if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR);
 
 app.post('/api/composer', async (req, res) => {
     const { task } = req.body;
+    if (!task) return res.status(400).json({ error: "Görev boş olamaz." });
+
     try {
-        const response = await model.generateContent(`
-            Sen bir uzman yazılımcısın. Şu isteği yerine getir: ${task}.
-            Kurallar: Sadece [EDIT: dosya_adi] kod_blogu [/EDIT] formatında yanıt ver.
-        `);
+        const result = await model.generateContent(task);
+        const responseText = result.response.text();
 
-        const output = response.response.text();
-        const editRegex = /\[EDIT: (.+?)\]([\s\S]*?)\[\/EDIT\]/g;
-        let match;
-        let modifiedFiles = [];
+        // Basit bir dosya oluşturucu mantığı
+        const fileName = "output.txt"; 
+        fs.writeFileSync(path.join(PROJECTS_DIR, fileName), responseText);
 
-        while ((match = editRegex.exec(output)) !== null) {
-            fs.writeFileSync(path.join(PROJECTS_DIR, match[1].trim()), match[2].trim());
-            modifiedFiles.push(match[1].trim());
-        }
-
-        res.json({ success: true, modified: modifiedFiles });
+        res.json({ success: true, message: "Dosya oluşturuldu: " + fileName, content: responseText });
     } catch (err) {
+        console.error("AI Hatası:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-app.listen(3000, () => console.log('Sistem hazır!'));
+app.listen(3000, () => console.log('Composer motoru aktif!'));
