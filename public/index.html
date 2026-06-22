@@ -1,16 +1,19 @@
-<!DOCTYPE html>
-<html>
-<body>
-    <h3>AI Mühendislik İstasyonu</h3>
-    <textarea id="cmd" style="width:100%; height:100px;"></textarea><br>
-    <button onclick="gonder()">Çalıştır</button>
-    <div id="out"></div>
-    <script>
-        async function gonder() {
-            const komut = document.getElementById('cmd').value;
-            const res = await (await fetch('/api/master', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({komut})})).json();
-            document.getElementById('out').innerHTML = res.sonuc;
-        }
-    </script>
-</body>
-</html>
+<select id="mode">
+    <option value="modding">Minecraft Mod Geliştirme</option>
+    <option value="design">UI/UX Tasarım</option>
+    <option value="security">Siber Güvenlik</option>
+</select>
+<textarea id="editor" placeholder="Talimat ver (Örn: Main.java oluştur ve GitHub'a gönder)"></textarea>
+<button onclick="gonder()">Görevi Başlat</button>
+<div id="out"></div>
+<script>
+    async function gonder() {
+        const res = await fetch('/api/master-core', { 
+            method:'POST', 
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({ task: document.getElementById('editor').value, mode: document.getElementById('mode').value })
+        });
+        const data = await res.json();
+        document.getElementById('out').innerText = data.sonuc;
+    }
+</script>
