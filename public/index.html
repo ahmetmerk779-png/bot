@@ -1,32 +1,21 @@
 <!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body { background: #0f0f0f; color: #fff; font-family: sans-serif; display: flex; justify-content: center; padding: 50px; }
-        .card { width: 600px; background: #1a1a1a; padding: 20px; border-radius: 10px; border: 1px solid #333; }
-        textarea { width: 100%; height: 100px; background: #000; color: #0f0; border: 1px solid #333; padding: 10px; border-radius: 5px; box-sizing: border-box; }
-        button { background: #0f0; color: #000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        #status { margin-top: 15px; color: #aaa; font-size: 14px; }
-    </style>
-</head>
+<html>
 <body>
-    <div class="card">
-        <h3>AI COMPOSER</h3>
-        <textarea id="task" placeholder="Ne kodlamamı istersin?"></textarea>
-        <button onclick="send()">GÖNDER</button>
-        <div id="status">Sistem hazır...</div>
-    </div>
+    <h3>AI Composer</h3>
+    <textarea id="task" placeholder="Ne kodlamamı istersin?"></textarea>
+    <button onclick="run()">Çalıştır</button>
+    <div id="out"></div>
     <script>
-        async function send() {
-            document.getElementById('status').innerText = "İşleniyor...";
+        async function run() {
+            const task = document.getElementById('task').value;
+            document.getElementById('out').innerText = "Çalışıyor...";
             const res = await fetch('/api/composer', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ task: document.getElementById('task').value })
+                body: JSON.stringify({ task })
             });
             const data = await res.json();
-            document.getElementById('status').innerText = data.success ? "Başarılı: " + data.modified.join(', ') : "Hata: " + data.error;
+            document.getElementById('out').innerText = data.success ? "Başarılı!" : "Hata: " + data.error;
         }
     </script>
 </body>
