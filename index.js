@@ -12,54 +12,39 @@ const bot = mineflayer.createBot({
 
 bot.loadPlugin(pathfinder);
 
-// --- 1. GUI & API Köprüsü (8080 Portu) ---
+// --- 1. GUI & API Köprüsü (Render için zorunlu) ---
 const app = express();
-app.use(express.json());
-app.post('/command', (req, res) => {
-    const { action } = req.body;
-    if (action === 'STOP') bot.quit();
-    if (action === 'REJOIN') bot.connect();
-    res.send({ status: 'OK' });
-});
+app.get('/', (req, res) => res.send('God Mode Engine Online'));
 app.listen(process.env.PORT || 8080);
 
-// --- 2. Otonom Savunma ve Radar ---
-bot.on('entityMoved', (entity) => {
-    if (entity.type === 'player' && entity.username !== 'asmp_bot') {
-        const dist = bot.entity.position.distanceTo(entity.position);
-        if (dist < 10) {
-            console.log(`[ALERT]: Yakın tehdit tespit edildi: ${entity.username}`);
-            bot.chat(`[God Mode Defense]: ${entity.username} güvenli mesafeye çekil!`);
+// --- 2. Düzeltilmiş Radar Sistemi ---
+setInterval(() => {
+    // Tüm varlıkları tara ve sadece oyuncuları filtrele
+    const players = Object.values(bot.entities).filter(e => 
+        e.type === 'player' && e.username !== bot.username
+    );
+    
+    players.forEach(p => {
+        const dist = bot.entity.position.distanceTo(p.position);
+        if (dist < 30) {
+            console.log(`[Radar]: Tespit edildi -> ${p.username} (${Math.round(dist)} blok)`);
         }
-    }
-});
+    });
+}, 10000); // 10 saniyede bir tara
 
-// --- 3. Akıllı Giriş ve Kişilik ---
+// --- 3. Akıllı Giriş ---
 bot.on('message', (jsonMsg) => {
     const msg = jsonMsg.toString();
-    if (msg.includes("login")) bot.chat(`/login ${process.env.PASSWORD}`);
-});
-
-bot.on('spawn', () => {
-    console.log("[AI]: Operatör, Sistem Online. Göreve hazırım.");
-    bot.chat("God Mode Engine 2.0 aktif.");
-});
-
-// --- 4. NPC Etkileşim Motoru ---
-async function interactWithNPC(npcName) {
-    const npc = bot.nearestEntity((e) => e.type === 'player' && e.username === npcName);
-    if (npc) {
-        const move = new Movements(bot);
-        bot.pathfinder.setMovements(move);
-        await bot.pathfinder.goto(new goals.GoalNear(npc.position.x, npc.position.y, npc.position.z, 2));
-        bot.lookAt(npc.position.offset(0, npc.height / 2, 0));
-        bot.activateEntity(npc);
+    if (msg.includes("login")) {
+        bot.chat(`/login ${process.env.PASSWORD}`);
     }
-}
+});
 
-// --- 5. Hata & Yeniden Bağlanma ---
+// --- 4. Hata Yönetimi ---
 bot.on('kicked', (reason) => {
     console.log(`[Rejoin]: Atıldım, 60s bekleniyor. Sebep: ${reason}`);
     setTimeout(() => bot.connect(), 60000);
 });
-bot.on('error', (err) => console.log(err));
+bot.on('error', (err) => console.log('Hata:', err));
+
+console.log("[Sistem]: God Mode Engine yüklendi ve hazır.");
