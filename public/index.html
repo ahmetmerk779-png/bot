@@ -1,58 +1,18 @@
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <title>ASMP // Cloud IDE</title>
-    <style>
-        body { background: #121212; color: #fff; font-family: monospace; display: flex; height: 100vh; margin: 0; }
-        #files { width: 200px; background: #1e1e1e; padding: 15px; border-right: 1px solid #333; }
-        #editor-area { flex: 1; padding: 20px; display: flex; flex-direction: column; }
-        textarea { width: 100%; height: 60vh; background: #000; color: #0f0; border: 1px solid #444; padding: 10px; }
-        .btn { background: #333; color: #fff; border: none; padding: 10px; cursor: pointer; margin-top: 5px; }
-        .file-item { cursor: pointer; padding: 5px; color: #aaa; }
-        .file-item:hover { color: #fff; }
-    </style>
-</head>
-<body>
-    <div id="files">
-        <h3>Dosyalar</h3>
-        <div id="list"></div>
-        <button class="btn" onclick="list()">YENİLE</button>
-    </div>
-    <div id="editor-area">
-        <textarea id="code" placeholder="Kodun burada..."></textarea>
-        <button class="btn" onclick="save()">💾 KAYDET</button>
-        <button class="btn" onclick="ai()">🤖 AI MOD YAZ</button>
-        <button class="btn" onclick="run()">🚀 ÇALIŞTIR</button>
-        <div id="term" style="background:#000; color:#fff; height:150px; overflow:auto; margin-top:10px; padding:10px; border:1px solid #444;"></div>
+<div class="modern-panel">
+    <div id="hamburger-menu">☰</div>
+    <div id="file-tree"> </div>
+    
+    <div id="chat-console">
+        <input id="user-input" placeholder="Komutunu yaz ve Enter'a bas..." />
     </div>
 
-    <script>
-        async function list() {
-            const r = await fetch('/api/fs', {method:'POST', body:JSON.stringify({action:'list'}), headers:{'Content-Type':'application/json'}});
-            document.getElementById('list').innerHTML = (await r.json()).map(f => `<div class="file-item" onclick="load('${f}')">${f}</div>`).join('');
-        }
-        async function load(name) {
-            const r = await fetch('/api/fs', {method:'POST', body:JSON.stringify({action:'read', name}), headers:{'Content-Type':'application/json'}});
-            document.getElementById('code').value = await r.text();
-        }
-        async function ai() {
-            const task = prompt("Yapay zekaya ne yaptırmak istersin?");
-            const r = await fetch('/api/ai', {method:'POST', body:JSON.stringify({task}), headers:{'Content-Type':'application/json'}});
-            document.getElementById('code').value = (await r.json()).code;
-        }
-        async function save() {
-            const name = prompt("Dosya adı (örn: bot.js):");
-            const content = document.getElementById('code').value;
-            await fetch('/api/fs', {method:'POST', body:JSON.stringify({action:'write', name, content}), headers:{'Content-Type':'application/json'}});
-            list();
-        }
-        async function run() {
-            const cmd = prompt("Çalıştırma komutu (örn: node bot.js):");
-            const r = await fetch('/api/run', {method:'POST', body:JSON.stringify({cmd}), headers:{'Content-Type':'application/json'}});
-            document.getElementById('term').innerText = (await r.json()).out;
-        }
-        list();
-    </script>
-</body>
-</html>
+    <div id="shell-console">
+        <pre id="log-output"></pre>
+    </div>
+</div>
+
+<style>
+    body { background: #0f0f12; color: #fff; font-family: 'Consolas', sans-serif; }
+    .modern-panel { backdrop-filter: blur(20px); background: rgba(30, 30, 40, 0.8); height: 100vh; padding: 20px; }
+    #shell-console { border-top: 1px solid #444; height: 200px; overflow-y: scroll; color: #00ff00; }
+</style>
