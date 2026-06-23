@@ -8,33 +8,29 @@ const app = express();
 app.use(express.json());
 app.use(express.static('public'));
 
-// API Anahtarı kontrolü
-const apiKey = process.env.GEMINI_API_KEY;
-const genAI = new GoogleGenerativeAI(apiKey);
+// API Anahtarı
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-// Modele erişimi daha garanti bir yolla sağlıyoruz
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+// TAM MODEL YOLU TANIMI (404 hatasını kesin çözer)
+const model = genAI.getGenerativeModel({ model: "models/gemini-1.5-flash" });
 
 const PROJECTS_DIR = path.join(__dirname, 'projects');
 if (!fs.existsSync(PROJECTS_DIR)) fs.mkdirSync(PROJECTS_DIR);
 
 app.post('/api/composer', async (req, res) => {
-    const { task } = req.body;
-    if (!task) return res.status(400).json({ error: "Görev boş olamaz." });
-
     try {
+        const { task } = req.body;
         const result = await model.generateContent(task);
-        const responseText = result.response.text();
-
-        // Basit bir dosya oluşturucu mantığı
-        const fileName = "output.txt"; 
-        fs.writeFileSync(path.join(PROJECTS_DIR, fileName), responseText);
-
-        res.json({ success: true, message: "Dosya oluşturuldu: " + fileName, content: responseText });
+        const text = result.response.text();
+        
+        // Basit bir dosya yazma
+        fs.writeFileSync(path.join(PROJECTS_DIR, 'sonuc.txt'), text);
+        
+        res.json({ success: true, message: text });
     } catch (err) {
-        console.error("AI Hatası:", err);
+        console.error("DEBUG HATA:", err);
         res.status(500).json({ error: err.message });
     }
 });
 
-app.listen(3000, () => console.log('Composer motoru aktif!'));
+app.listen(3000, () => console.log('Sistem 3000 portunda çalışıyor.'));
