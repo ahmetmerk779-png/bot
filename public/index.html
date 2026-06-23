@@ -1,43 +1,34 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
+    <meta charset="UTF-8">
+    <title>God Mode Engine</title>
     <style>
-        body { background: #0a0a0c; color: white; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        
-        /* Orta-Alt Mesaj Kutusu ve Buton */
-        .input-container { position: absolute; bottom: 15%; width: 60%; display: flex; gap: 10px; }
-        
-        #cmd { width: 100%; padding: 15px; background: #1a1a1a; border: 1px solid #333; color: white; border-radius: 8px; font-size: 16px; }
-        
-        #send-btn { padding: 0 25px; background: #3b82f6; border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        #send-btn:hover { background: #2563eb; }
-
-        /* Shell Konsolu (Görünür olması için) */
-        #shell { width: 80%; height: 200px; background: #000; color: #00ff00; border: 1px solid #333; padding: 10px; overflow-y: auto; margin-top: 20px; font-family: 'Courier New', monospace; }
+        body { background: #0a0a0c; color: #d1d1d1; font-family: 'Consolas', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        #chat-history { width: 80%; height: 60vh; background: #16161a; border-radius: 12px; padding: 20px; overflow-y: auto; margin-bottom: 20px; border: 1px solid #333; }
+        .input-container { width: 80%; display: flex; gap: 10px; }
+        #cmd { flex: 1; padding: 15px; background: #1a1a1a; border: 1px solid #444; color: white; border-radius: 8px; }
+        #send-btn { padding: 10px 25px; background: #3b82f6; border: none; color: white; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
 <body>
-
+    <div id="chat-history">Sistem hazır. Konuşmaya başlamak için bir şey yaz.</div>
     <div class="input-container">
-        <input type="text" id="cmd" placeholder="Komutunu buraya yaz...">
+        <input type="text" id="cmd" placeholder="Bir şey sor...">
         <button id="send-btn">GÖNDER</button>
     </div>
-
-    <div id="shell">Sistem bekleniyor...</div>
-
     <script>
-        function sendMessage() {
+        async function sendMessage() {
             const input = document.getElementById('cmd');
-            const shell = document.getElementById('shell');
-            if (!input.value) return;
-            
-            shell.innerHTML += `<div>> ${input.value}</div>`;
-            // Buradan sunucuya gönderim yapılacak
+            const chat = document.getElementById('chat-history');
+            const msg = input.value;
+            chat.innerHTML += `<div><b>Sen:</b> ${msg}</div>`;
+            const res = await fetch('/api/chat', { method: 'POST', body: JSON.stringify({ message: msg }), headers: {'Content-Type': 'application/json'} });
+            const data = await res.json();
+            chat.innerHTML += `<div style="color: #00ff00;"><b>Sistem:</b> ${data.reply}</div>`;
             input.value = '';
         }
-
-        document.getElementById('send-btn').addEventListener('click', sendMessage);
-        document.getElementById('cmd').addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
+        document.getElementById('send-btn').onclick = sendMessage;
     </script>
 </body>
 </html>
