@@ -1,33 +1,52 @@
 const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
+const express = require('express');
 require('dotenv').config();
 
 const bot = mineflayer.createBot({
-    host: 'aesirmc.com',
+    host: process.env.SERVER_HOST || 'aesirmc.com',
     port: 25565,
     username: 'asmp_bot',
-    version: '1.21.8' // Versiyon seçimi
+    version: '1.21.8'
 });
 
 bot.loadPlugin(pathfinder);
 
-// --- 1. Güvenli Giriş ve Restart Modülü ---
-bot.on('message', (jsonMsg) => {
-    const msg = jsonMsg.toString();
-    console.log(`[Sunucu]: ${msg}`);
-    if (msg.includes("Lütfen /login")) {
-        bot.chat(`/login ${process.env.PASSWORD}`);
+// --- 1. GUI & API Köprüsü (8080 Portu) ---
+const app = express();
+app.use(express.json());
+app.post('/command', (req, res) => {
+    const { action } = req.body;
+    if (action === 'STOP') bot.quit();
+    if (action === 'REJOIN') bot.connect();
+    res.send({ status: 'OK' });
+});
+app.listen(process.env.PORT || 8080);
+
+// --- 2. Otonom Savunma ve Radar ---
+bot.on('entityMoved', (entity) => {
+    if (entity.type === 'player' && entity.username !== 'asmp_bot') {
+        const dist = bot.entity.position.distanceTo(entity.position);
+        if (dist < 10) {
+            console.log(`[ALERT]: Yakın tehdit tespit edildi: ${entity.username}`);
+            bot.chat(`[God Mode Defense]: ${entity.username} güvenli mesafeye çekil!`);
+        }
     }
 });
 
-// --- 2. AI Karar ve Kişilik Modülü ---
-bot.on('spawn', () => {
-    console.log("[AI]: Operatör, AesirMC dünyasına giriş yapıldı. Görev hazır.");
-    bot.chat("God Mode aktif. Sistem analiz ediliyor...");
+// --- 3. Akıllı Giriş ve Kişilik ---
+bot.on('message', (jsonMsg) => {
+    const msg = jsonMsg.toString();
+    if (msg.includes("login")) bot.chat(`/login ${process.env.PASSWORD}`);
 });
 
-// --- 3. Pathfinding ve NPC Etkileşim ---
-async function goToAndInteract(npcName) {
+bot.on('spawn', () => {
+    console.log("[AI]: Operatör, Sistem Online. Göreve hazırım.");
+    bot.chat("God Mode Engine 2.0 aktif.");
+});
+
+// --- 4. NPC Etkileşim Motoru ---
+async function interactWithNPC(npcName) {
     const npc = bot.nearestEntity((e) => e.type === 'player' && e.username === npcName);
     if (npc) {
         const move = new Movements(bot);
@@ -38,14 +57,9 @@ async function goToAndInteract(npcName) {
     }
 }
 
-// --- 4. Radar Sistemi (Tetikleyici) ---
-setInterval(() => {
-    const entities = bot.nearestEntities(30);
-    entities.forEach(e => {
-        if (e.type === 'player') console.log(`[Radar]: Tespit edildi -> ${e.username}`);
-    });
-}, 5000);
-
-// --- 5. Hata Yönetimi ---
-bot.on('kicked', console.log);
-bot.on('error', console.log);
+// --- 5. Hata & Yeniden Bağlanma ---
+bot.on('kicked', (reason) => {
+    console.log(`[Rejoin]: Atıldım, 60s bekleniyor. Sebep: ${reason}`);
+    setTimeout(() => bot.connect(), 60000);
+});
+bot.on('error', (err) => console.log(err));
