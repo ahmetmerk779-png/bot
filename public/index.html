@@ -1,25 +1,23 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>ASMP God Mode Control</title>
-    <style>
-        body { background: #0d0d0d; color: #00ff00; font-family: monospace; padding: 20px; }
-        button { background: #222; border: 1px solid #00ff00; color: #00ff00; padding: 15px; margin: 5px; cursor: pointer; }
-    </style>
-</head>
+<head><style>
+    body { background: #000; color: #0f0; font-family: monospace; display: flex; flex-direction: column; align-items: center; }
+    button { background: #1a1a1a; border: 1px solid #0f0; color: #0f0; padding: 15px; margin: 5px; cursor: pointer; }
+</style></head>
 <body>
-    <h1>ASMP God Mode Panel</h1>
-    <button onclick="sendUpdate('aesirmc.com', '1.21.8')">AesirMC (1.21.8) Başlat</button>
-    <button onclick="sendUpdate('localhost', '1.20.1')">Yerel Sunucu (1.20.1) Başlat</button>
+    <h1>ASMP God Mode Control</h1>
+    <button onclick="sendAction('MINE', 'iron_ore')">Demir Kaz</button>
+    <button onclick="sendAction('DEPOSIT')">Sandığa Boşalt</button>
+    <button onclick="sendAction('COMBAT_TOGGLE')">Savaş Modu</button>
+    <button onclick="sendAction('MOVE_FORWARD')">İlerle</button>
 
     <script>
-        async function sendUpdate(host, version) {
-            await fetch('/update-settings', {
+        async function sendAction(action, blockType) {
+            await fetch('/command', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ host, version })
+                body: JSON.stringify({ action, blockType })
             });
-            alert('Sistem yeni ayarlar ile başlatıldı!');
         }
     </script>
 </body>
