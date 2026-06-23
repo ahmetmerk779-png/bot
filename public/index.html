@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ASMP God Mode Control</title>
+    <style>
+        body { background: #0d0d0d; color: #00ff00; font-family: monospace; padding: 20px; }
+        button { background: #222; border: 1px solid #00ff00; color: #00ff00; padding: 15px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>ASMP God Mode Panel</h1>
+    <button onclick="sendUpdate('aesirmc.com', '1.21.8')">AesirMC (1.21.8) Başlat</button>
+    <button onclick="sendUpdate('localhost', '1.20.1')">Yerel Sunucu (1.20.1) Başlat</button>
+
+    <script>
+        async function sendUpdate(host, version) {
+            await fetch('/update-settings', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ host, version })
+            });
+            alert('Sistem yeni ayarlar ile başlatıldı!');
+        }
+    </script>
+</body>
+</html>
