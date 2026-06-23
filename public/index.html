@@ -1,32 +1,58 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <title>ASMP // COMPOSER</title>
+    <title>ASMP // Cloud IDE</title>
     <style>
-        body { background: #121212; color: #fff; font-family: sans-serif; padding: 20px; }
-        textarea { width: 100%; height: 150px; background: #1e1e1e; color: #0f0; border: 1px solid #333; }
-        button { background: #0f0; border: none; padding: 10px; margin-top: 10px; cursor: pointer; }
-        #log { margin-top: 20px; white-space: pre-wrap; }
+        body { background: #121212; color: #fff; font-family: monospace; display: flex; height: 100vh; margin: 0; }
+        #files { width: 200px; background: #1e1e1e; padding: 15px; border-right: 1px solid #333; }
+        #editor-area { flex: 1; padding: 20px; display: flex; flex-direction: column; }
+        textarea { width: 100%; height: 60vh; background: #000; color: #0f0; border: 1px solid #444; padding: 10px; }
+        .btn { background: #333; color: #fff; border: none; padding: 10px; cursor: pointer; margin-top: 5px; }
+        .file-item { cursor: pointer; padding: 5px; color: #aaa; }
+        .file-item:hover { color: #fff; }
     </style>
 </head>
 <body>
-    <h3>ASMP // Kod Oluşturucu</h3>
-    <textarea id="task" placeholder="Ne yapmamı istersin?"></textarea>
-    <button onclick="run()">GÖNDER</button>
-    <div id="log"></div>
+    <div id="files">
+        <h3>Dosyalar</h3>
+        <div id="list"></div>
+        <button class="btn" onclick="list()">YENİLE</button>
+    </div>
+    <div id="editor-area">
+        <textarea id="code" placeholder="Kodun burada..."></textarea>
+        <button class="btn" onclick="save()">💾 KAYDET</button>
+        <button class="btn" onclick="ai()">🤖 AI MOD YAZ</button>
+        <button class="btn" onclick="run()">🚀 ÇALIŞTIR</button>
+        <div id="term" style="background:#000; color:#fff; height:150px; overflow:auto; margin-top:10px; padding:10px; border:1px solid #444;"></div>
+    </div>
+
     <script>
-        async function run() {
-            const log = document.getElementById('log');
-            log.innerText = "İşleniyor...";
-            const res = await fetch('/api/composer', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ task: document.getElementById('task').value })
-            });
-            const data = await res.json();
-            log.innerText = data.success ? data.message : "HATA: " + data.error;
+        async function list() {
+            const r = await fetch('/api/fs', {method:'POST', body:JSON.stringify({action:'list'}), headers:{'Content-Type':'application/json'}});
+            document.getElementById('list').innerHTML = (await r.json()).map(f => `<div class="file-item" onclick="load('${f}')">${f}</div>`).join('');
         }
+        async function load(name) {
+            const r = await fetch('/api/fs', {method:'POST', body:JSON.stringify({action:'read', name}), headers:{'Content-Type':'application/json'}});
+            document.getElementById('code').value = await r.text();
+        }
+        async function ai() {
+            const task = prompt("Yapay zekaya ne yaptırmak istersin?");
+            const r = await fetch('/api/ai', {method:'POST', body:JSON.stringify({task}), headers:{'Content-Type':'application/json'}});
+            document.getElementById('code').value = (await r.json()).code;
+        }
+        async function save() {
+            const name = prompt("Dosya adı (örn: bot.js):");
+            const content = document.getElementById('code').value;
+            await fetch('/api/fs', {method:'POST', body:JSON.stringify({action:'write', name, content}), headers:{'Content-Type':'application/json'}});
+            list();
+        }
+        async function run() {
+            const cmd = prompt("Çalıştırma komutu (örn: node bot.js):");
+            const r = await fetch('/api/run', {method:'POST', body:JSON.stringify({cmd}), headers:{'Content-Type':'application/json'}});
+            document.getElementById('term').innerText = (await r.json()).out;
+        }
+        list();
     </script>
 </body>
 </html>
