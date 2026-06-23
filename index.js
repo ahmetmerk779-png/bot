@@ -1,33 +1,15 @@
-/**
- * God Mode Engine - Main Controller
- * Bu dosya, sistemin tüm parçalarını tek bir noktadan yönetir.
- */
+const express = require('express');
+const app = express();
+const path = require('path');
+const agent = require('./lib/agent'); // Artık hata vermeyecek
 
-const { monitorSystem } = require('./lib/agent');
-const { runBuildPipeline } = require('./lib/autoBuild');
-const { saveSnapshot } = require('./lib/fileManager');
+app.use(express.static('public'));
 
-async function initSystem() {
-    console.log("🚀 God Mode Başlatılıyor...");
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
-    // 1. Dosya sistemini izlemeye başla (Rollback için snapshot al)
-    saveSnapshot('./src');
-    console.log("✅ Dosya yedeği alındı.");
-
-    // 2. Sistem monitörünü (Hata avcısı) aktif et
-    monitorSystem();
-    console.log("🔍 Hata avcısı aktif.");
-
-    // 3. Proje derleme hattını kur
-    runBuildPipeline('minecraft'); 
-    console.log("🛠 Derleme hattı hazır.");
-}
-
-// Sistemi başlat
-initSystem();
-
-// Hata yönetimi (Sistem çökmesin diye)
-process.on('uncaughtException', (err) => {
-    console.error("❌ Kritik Hata: ", err.message);
-    // Burada sistemi otomatik 'rollback' yapmaya zorlayabilirsin
+app.listen(process.env.PORT || 3000, () => {
+    console.log('God Mode Fabrika Aktif.');
+    agent.monitorSystem();
 });
