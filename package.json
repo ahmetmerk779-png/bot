@@ -1,0 +1,13 @@
+{
+  "name": "asmp",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mineflayer": "^4.20.0",
+    "mineflayer-pathfinder": "^2.4.4",
+    "dotenv": "^16.4.5"
+  }
+}
