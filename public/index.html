@@ -1,21 +1,20 @@
 <!DOCTYPE html>
 <html>
 <body>
-    <h3>AI Composer</h3>
-    <textarea id="task" placeholder="Ne kodlamamı istersin?"></textarea>
-    <button onclick="run()">Çalıştır</button>
+    <h3>Composer AI</h3>
+    <textarea id="task"></textarea>
+    <button onclick="run()">GÖNDER</button>
     <div id="out"></div>
     <script>
         async function run() {
             const task = document.getElementById('task').value;
-            document.getElementById('out').innerText = "Çalışıyor...";
             const res = await fetch('/api/composer', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({ task })
             });
             const data = await res.json();
-            document.getElementById('out').innerText = data.success ? "Başarılı!" : "Hata: " + data.error;
+            document.getElementById('out').innerText = data.success ? data.message : "HATA: " + data.error;
         }
     </script>
 </body>
