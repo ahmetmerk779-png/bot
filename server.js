@@ -1,23 +1,16 @@
 const express = require('express');
-const fs = require('fs');
 const app = express();
+const fs = require('fs-extra');
+
+app.use(express.static('public'));
 app.use(express.json());
 
-// Q-Learning Zeka Modeli
-let qTable = { 'idle': { 'analyze': 0, 'fix': 0, 'deploy': 0 } };
-
-// Dosya Sistemi ve Log Okuyucu
-app.get('/api/logs', (req, res) => {
-    const logs = fs.readFileSync('./logs/latest.log', 'utf8');
-    res.json({ logs });
-});
-
-// Otomatik Hata Düzeltme & İşleme
+// Komut İşleyici
 app.post('/api/execute', (req, res) => {
     const { command } = req.body;
-    // Burada AI logic devreye girer
-    console.log(`[SHELL]: Çalıştırılıyor -> ${command}`);
-    res.json({ status: "Başarılı", output: "Kod inject edildi." });
+    console.log(`[KOMUT]: ${command}`);
+    // Buraya fileManager ve qLearning modülleri bağlanır
+    res.json({ message: "İşlem başlatıldı" });
 });
 
-app.listen(3000, () => console.log('God Mode Fabrika Aktif: http://localhost:3000'));
+app.listen(3000, () => console.log('God Mode Çalışıyor: http://localhost:3000'));
