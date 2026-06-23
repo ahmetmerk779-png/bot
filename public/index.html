@@ -1,24 +1,16 @@
-<!DOCTYPE html>
-<html>
-<head><style>
-    body { background: #000; color: #0f0; font-family: monospace; display: flex; flex-direction: column; align-items: center; }
-    button { background: #1a1a1a; border: 1px solid #0f0; color: #0f0; padding: 15px; margin: 5px; cursor: pointer; }
-</style></head>
-<body>
-    <h1>ASMP God Mode Control</h1>
-    <button onclick="sendAction('MINE', 'iron_ore')">Demir Kaz</button>
-    <button onclick="sendAction('DEPOSIT')">Sandığa Boşalt</button>
-    <button onclick="sendAction('COMBAT_TOGGLE')">Savaş Modu</button>
-    <button onclick="sendAction('MOVE_FORWARD')">İlerle</button>
+<div id="settings-area">
+    <input type="text" id="ipInput" placeholder="Sunucu IP Gir">
+    <button onclick="setConnection()">Bağlan</button>
+</div>
 
-    <script>
-        async function sendAction(action, blockType) {
-            await fetch('/command', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ action, blockType })
-            });
-        }
-    </script>
-</body>
-</html>
+<script>
+    async function setConnection() {
+        const ip = document.getElementById('ipInput').value;
+        await fetch('/update-settings', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ host: ip })
+        });
+        alert('Sunucu ayarlandı: ' + ip);
+    }
+</script>
