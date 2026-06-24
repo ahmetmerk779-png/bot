@@ -1,5 +1,5 @@
 import os, uuid, shutil, json
-from datetime import timedelta
+from datetime import datetime, timedelta
 from flask import Flask, render_template, request, make_response, redirect
 from groq import Groq
 from duckduckgo_search import DDGS
@@ -104,13 +104,11 @@ def sor():
                 except:
                     pass
 
-    # İnternet aramasını sadece "araştır" ile başlayan sorularda yap
     ek_baglam = ""
     if soru.lower().startswith("araştır"):
         arama_sonuc = web_ara(soru)
         if arama_sonuc:
             ek_baglam = f"\n\nİNTERNET ARAMA SONUÇLARI:\n{arama_sonuc}\n\nBu sonuçlara dayanarak cevap ver."
-
     if dosya_icerikleri:
         ek_baglam += f"\n\nYÜKLENEN DOSYALAR:\n{dosya_icerikleri}\n\nBu dosyaları referans al."
 
@@ -143,7 +141,12 @@ def sor():
         cevap = f"Hata: {str(e)}"
 
     history = load_history(token)
-    history.append({"soru": soru, "cevap": cevap, "kod": kod})
+    history.append({
+        "soru": soru,
+        "cevap": cevap,
+        "kod": kod,
+        "zaman": datetime.now().strftime("%d.%m.%Y %H:%M")
+    })
     save_history(token, history)
 
     resp = make_response(redirect("/"))
@@ -181,6 +184,15 @@ def dosya_yukle():
 def onizle():
     kod = request.form.get("kod", "")
     return render_template("onizle.html", kod=kod)
+
+@app.route("/sil/<int:index>", methods=["POST"])
+def mesaj_sil(index):
+    token = get_user_token()
+    history = load_history(token)
+    if 0 <= index < len(history):
+        history.pop(index)
+        save_history(token, history)
+    return redirect("/")
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=10000)
