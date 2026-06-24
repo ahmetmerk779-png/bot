@@ -22,7 +22,7 @@ SYSTEM_PROMPT = (
     "- Sohbet, bilgi → net ve yardımsever.\n"
     "- Kod istenirse → çalışan kodu ```dil ... ``` bloğu içinde ver.\n"
     "- APK veya JAR istenirse → ilgili Java/Kotlin ve proje dosyalarını ver.\n"
-    "Ayrıca her soruda internette arama yapılıp sonuçlar sana verilecek. Güncel bilgileri kullan."
+    "Ayrıca soru 'araştır' ile başlıyorsa internette arama yapılıp sonuçlar sana verilecek. Güncel bilgileri kullan."
 )
 
 def web_ara(sorgu, max_sonuc=3):
@@ -104,10 +104,13 @@ def sor():
                 except:
                     pass
 
-    arama_sonuc = web_ara(soru)
+    # İnternet aramasını sadece "araştır" ile başlayan sorularda yap
     ek_baglam = ""
-    if arama_sonuc:
-        ek_baglam = f"\n\nİNTERNET ARAMA SONUÇLARI:\n{arama_sonuc}\n\nBu sonuçlara dayanarak cevap ver."
+    if soru.lower().startswith("araştır"):
+        arama_sonuc = web_ara(soru)
+        if arama_sonuc:
+            ek_baglam = f"\n\nİNTERNET ARAMA SONUÇLARI:\n{arama_sonuc}\n\nBu sonuçlara dayanarak cevap ver."
+
     if dosya_icerikleri:
         ek_baglam += f"\n\nYÜKLENEN DOSYALAR:\n{dosya_icerikleri}\n\nBu dosyaları referans al."
 
