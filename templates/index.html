@@ -72,6 +72,7 @@
             border-radius: 18px;
             animation: fadeIn 0.3s ease;
             word-wrap: break-word;
+            position: relative;
         }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         .user-msg {
@@ -87,7 +88,13 @@
             border: 1px solid rgba(255,255,255,0.15);
             border-bottom-left-radius: 5px;
         }
-        .bot-msg pre {
+        .timestamp {
+            font-size: 0.7rem;
+            opacity: 0.7;
+            margin-bottom: 0.2rem;
+            display: block;
+        }
+        .msg-content pre {
             background: rgba(0,0,0,0.4);
             padding: 0.7rem;
             border-radius: 12px;
@@ -96,11 +103,25 @@
             white-space: pre-wrap;
             overflow-x: auto;
         }
+        .msg-actions {
+            display: flex;
+            gap: 0.3rem;
+            margin-top: 0.3rem;
+            flex-wrap: wrap;
+        }
+        .msg-actions button {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 0.2rem 0.6rem;
+            border-radius: 15px;
+            font-size: 0.7rem;
+            cursor: pointer;
+        }
         .code-actions {
             display: flex;
             gap: 0.5rem;
             margin-top: 0.5rem;
-            flex-wrap: wrap;
         }
         .code-actions button {
             background: rgba(255,255,255,0.2);
@@ -110,9 +131,6 @@
             border-radius: 20px;
             font-size: 0.8rem;
             cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.2rem;
         }
         .preview-frame {
             width: 100%;
@@ -172,13 +190,13 @@
     <div class="header">
         <h2>🧠 Süper Asistan</h2>
         <div class="header-buttons">
-            <button class="btn" onclick="toggleSidebar()">📁</button>
+            <button class="btn" onclick="toggleSidebar()">📁 Dosyalar</button>
             <a href="/yeni_sohbet"><button class="btn btn-danger">🆕 Yeni Sohbet</button></a>
         </div>
     </div>
     <div class="main">
         <div id="sidebar" class="sidebar">
-            <h4>📂 Dosyalar</h4>
+            <h4>📂 Yüklenen Dosyalar</h4>
             <ul class="file-list">
                 {% for d in dosyalar %}
                 <li>{{ d.isim }} ({{ (d.boyut/1024)|round(1) }} KB)</li>
@@ -193,13 +211,23 @@
         </div>
         <div class="chat-area" id="chatArea">
             {% for m in history %}
-            <div class="message user-msg"><strong>Sen:</strong> {{ m.soru }}</div>
+            <div class="message user-msg">
+                <span class="timestamp">{{ m.zaman }}</span>
+                <div class="msg-content">{{ m.soru }}</div>
+                <div class="msg-actions">
+                    <button onclick="copyText(`{{ m.soru|replace('`','\\`') }}`)">📋 Kopyala</button>
+                    <button onclick="deleteMessage({{ loop.index0 }})">🗑️ Sil</button>
+                </div>
+            </div>
             <div class="message bot-msg">
-                <strong>🤖 Asistan:</strong>
-                <pre>{{ m.cevap }}</pre>
+                <span class="timestamp">{{ m.zaman }}</span>
+                <div class="msg-content"><pre>{{ m.cevap }}</pre></div>
+                <div class="msg-actions">
+                    <button onclick="copyText(`{{ m.cevap|replace('`','\\`') }}`)">📋 Kopyala</button>
+                </div>
                 {% if m.kod %}
                 <div class="code-actions">
-                    <button onclick="copyCode(`{{ m.kod|replace('`','\\`') }}`)">📋 Kopyala</button>
+                    <button onclick="copyText(`{{ m.kod|replace('`','\\`') }}`)">📋 Kodu Kopyala</button>
                     <button onclick="downloadCode(`{{ m.kod|replace('`','\\`') }}`, 'kod.html')">💾 İndir</button>
                     <button onclick="showPreview(`{{ m.kod|replace('`','\\`') }}`, this)">👁️ Önizle</button>
                 </div>
@@ -219,8 +247,8 @@
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('open');
         }
-        function copyCode(code) {
-            navigator.clipboard.writeText(code).then(() => alert('Kopyalandı!'));
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => alert('Kopyalandı!'));
         }
         function downloadCode(code, filename) {
             const blob = new Blob([code], {type: 'text/plain'});
@@ -241,6 +269,11 @@
                 container.style.display = 'none';
                 container.innerHTML = '';
                 btn.textContent = '👁️ Önizle';
+            }
+        }
+        function deleteMessage(index) {
+            if (confirm('Bu mesajı silmek istediğine emin misin?')) {
+                fetch('/sil/' + index, { method: 'POST' }).then(() => location.reload());
             }
         }
         const chatArea = document.getElementById('chatArea');
