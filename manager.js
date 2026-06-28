@@ -1,13 +1,7 @@
 const { createBot } = require('./bot-logic');
-require('dotenv').config();
-
 const swarm = [
     { name: 'Maden_Botu', role: 'miner' },
-    { name: 'Koruma_Botu', role: 'guard' },
-    { name: 'Depo_Botu', role: 'logistic' }
+    { name: 'Koruma_Botu', role: 'guard' }
 ];
-
-swarm.forEach(botConfig => {
-    console.log(`[MANAGER] Başlatılıyor: ${botConfig.name}`);
-    createBot(botConfig.name, botConfig.role);
-});
+swarm.forEach(b => createBot(b.name, b.role));
+console.log("Sistem Aktif.");
