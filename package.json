@@ -10,7 +10,7 @@
     "socket.io": "^4.7.2",
     "mineflayer": "^4.20.0",
     "mineflayer-pathfinder": "^2.4.1",
-    "mineflayer-collectblock": "^2.0.0",
+    "mineflayer-collectblock": "*"  
     "mineflayer-pvp": "^4.0.0",
     "mineflayer-collectitems": "^1.1.0",
     "openai": "^4.0.0",
