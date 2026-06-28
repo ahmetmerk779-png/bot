@@ -1,19 +1,19 @@
 const mineflayer = require('mineflayer');
 const { pathfinder } = require('mineflayer-pathfinder');
 
-function createBot(username, role) {
+function createBot(username, host, port) {
     const bot = mineflayer.createBot({ 
-        // IP ve Portu buraya doğrudan yazıyoruz, artık ENV'ye gerek yok
-        host: 'BURAYA_SUNUCU_IP_YAZ', 
-        port: 25565, 
+        host: host,
+        port: parseInt(port),
         username: username, 
         version: '1.21.1' 
     });
     
     bot.loadPlugin(pathfinder);
     
-    bot.on('spawn', () => console.log(`${username} sunucuya bağlandı!`));
+    bot.on('spawn', () => console.log(`${username} sunucuya girdi!`));
     bot.on('error', (err) => console.log(`[HATA] ${username}: ${err}`));
+    bot.on('kicked', (reason) => console.log(`${username} atıldı: ${reason}`));
 }
 
 module.exports = { createBot };
