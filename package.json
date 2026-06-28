@@ -12,7 +12,6 @@
     "mineflayer-pathfinder": "latest",
     "mineflayer-collectblock": "latest",
     "mineflayer-pvp": "latest",
-    "mineflayer-collectitems": "latest",
     "openai": "latest",
     "dotenv": "latest"
   }
