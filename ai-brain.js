@@ -1,6 +1,10 @@
 const { OpenAI } = require('openai');
-require('dotenv').config();
 
+// Render'ın Environment Variables kısmından okur
+// Render Dashboard -> Environment -> Add Environment Variable kısmına 
+// KEY: AI_API_KEY
+// VALUE: gsk_senin_anahtarin
+// şeklinde eklemeyi unutma!
 const client = new OpenAI({ 
     apiKey: process.env.AI_API_KEY, 
     baseURL: 'https://api.groq.com/openai/v1' 
@@ -17,8 +21,14 @@ async function getDecision(botName, status, prompt) {
             messages: [{ role: "system", content: systemPrompt }],
             model: "llama-3.3-70b-versatile"
         });
-        return JSON.parse(response.choices[0].message.content);
-    } catch (e) { return { action: 'idle', target: null }; }
+        
+        // JSON cevabını temizle
+        const content = response.choices[0].message.content.replace(/```json|```/g, '').trim();
+        return JSON.parse(content);
+    } catch (e) { 
+        console.error("AI Karar hatası:", e);
+        return { action: 'idle', target: null }; 
+    }
 }
 
 module.exports = { getDecision };
