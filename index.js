@@ -16,15 +16,18 @@ const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://ap
 let bot;
 
 const AI_SYSTEM_PROMPT = `
-Sen otonom bir Minecraft botusun. Kullanıcının komutlarını SADECE aşağıdaki JSON formatında ver. Başka hiçbir şey yazma.
-ÖNEMLİ: Hedefleri (target) daima küçük harflerle ve Minecraft İngilizce isimleriyle yaz (Örn: dirt, log, stone, zombie, cow, pig). 
+Sen otonom bir Minecraft botusun. Kullanıcının komutlarını SADECE aşağıdaki JSON formatında ver.
+ÖNEMLİ KURALLAR:
+1. Hedefleri (target) İngilizce Minecraft eşya isimleriyle yaz (Örn: dirt, log, stone).
+2. EĞER kullanıcı senden yapamayacağın bir şey isterse (Örneğin: "eşya üret", "kazma yap", "ev yap"), SADECE "chat" eylemini kullan ve "Henüz eşya üretemiyorum, sadece blok kırabilir veya eşya atabilirim." gibi bir cevap ver. JSON yapısını asla bozma!
 
 Eylemler:
-1. "chat" - Sadece konuşmak için. (Örn: {"action": "chat", "message": "Merhaba!"})
+1. "chat" - Konuşmak veya yapamadığın bir görevi reddetmek için. (Örn: {"action": "chat", "message": "Bunu yapamam."})
 2. "collect" - Bir bloğu kırmak/kazmak için. (Örn: {"action": "collect", "target": "dirt"})
 3. "attack" - Bir yaratığa saldırmak için. (Örn: {"action": "attack", "target": "zombie"})
-4. "move" - Birinin yanına gitmek için. (Örn: {"action": "move", "target": "Ahmet"})
-5. "stop" - Durmak için. (Örn: {"action": "stop"})
+4. "move" - Birinin yanına gitmek için. (Örn: {"action": "move", "target": "player_name"})
+5. "drop" - Envanterindeki bir eşyayı atmak/vermek için. (Örn: {"action": "drop", "target": "log"})
+6. "stop" - Durmak için.
 `;
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
@@ -38,7 +41,7 @@ app.post('/connect', (req, res) => {
     bot.loadPlugin(collectBlock.plugin);
     bot.loadPlugin(pvp);
 
-    bot.on('spawn', () => console.log('Esnek Arama Modüllü Ajan Başlatıldı!'));
+    bot.on('spawn', () => console.log('Güncellenmiş Ajan Başlatıldı!'));
 
     bot.on('chat', async (user, message) => {
         if (user === bot.username) return;
@@ -61,12 +64,10 @@ app.post('/connect', (req, res) => {
                 bot.chat(command.message);
             } 
             
-            // YENİ AKILLI KAZMA İŞLEMİ
             else if (command.action === 'collect') {
                 const searchName = command.target.toLowerCase();
                 bot.chat(`Anlaşıldı, içinde '${searchName}' geçen bir blok arıyorum...`);
                 
-                // Birebir eşleşme yerine, adının içinde o kelime geçen en yakın bloğu bulur
                 const targetBlock = bot.findBlock({ 
                     matching: (b) => b.name.toLowerCase().includes(searchName), 
                     maxDistance: 64 
@@ -75,19 +76,16 @@ app.post('/connect', (req, res) => {
                 if (targetBlock) {
                     bot.chat(`${targetBlock.name} buldum! Kazıyorum.`);
                     bot.collectBlock.collect(targetBlock, err => {
-                        if (err) bot.chat("Kazarken bir sorun çıktı, yol kapalı veya aletim yok.");
+                        if (err) bot.chat("Kazarken bir sorun çıktı, ağaç çok yüksekte veya önüm kapalı.");
                     });
                 } else {
-                    bot.chat(`Etrafımda '${searchName}' ile ilgili hiçbir blok bulamadım.`);
+                    bot.chat(`Etrafımda '${searchName}' bulamadım.`);
                 }
             } 
             
-            // YENİ AKILLI SALDIRMA İŞLEMİ
             else if (command.action === 'attack') {
                 const searchName = command.target.toLowerCase();
                 bot.chat(`Hedef arıyorum: ${searchName}...`);
-                
-                // İsmi benzeyen en yakın varlığa saldırır
                 const targetEntity = bot.nearestEntity(e => 
                     (e.name && e.name.toLowerCase().includes(searchName)) || 
                     (e.type === 'player' && e.username && e.username.toLowerCase().includes(searchName))
@@ -97,7 +95,20 @@ app.post('/connect', (req, res) => {
                     bot.chat("Hedefi buldum, saldırıyorum!");
                     bot.pvp.attack(targetEntity);
                 } else {
-                    bot.chat(`Etrafta saldırmak için ${searchName} bulamadım.`);
+                    bot.chat(`Etrafta ${searchName} bulamadım.`);
+                }
+            }
+
+            // YENİ: EŞYA ATMA MODÜLÜ
+            else if (command.action === 'drop') {
+                const searchName = command.target.toLowerCase();
+                const itemToDrop = bot.inventory.items().find(i => i.name.toLowerCase().includes(searchName));
+                
+                if (itemToDrop) {
+                    bot.chat(`Sana ${itemToDrop.name} atıyorum...`);
+                    bot.tossStack(itemToDrop);
+                } else {
+                    bot.chat(`Envanterimde '${searchName}' bulamadım.`);
                 }
             }
             
@@ -114,12 +125,12 @@ app.post('/connect', (req, res) => {
             else if (command.action === 'stop') {
                 bot.pathfinder.setGoal(null);
                 bot.pvp.stop();
-                bot.chat("Bütün eylemleri durdurdum.");
+                bot.chat("Durdum.");
             }
 
         } catch (error) {
             console.log("YZ İşlem Hatası:", error);
-            bot.chat("Ne demek istediğini anlayamadım veya kelimeyi çeviremedim.");
+            bot.chat("Bunu nasıl yapacağımı henüz bilmiyorum veya cümleni tam anlayamadım.");
         }
     });
 
