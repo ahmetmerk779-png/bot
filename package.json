@@ -1,11 +1,12 @@
 {
-  "name": "ultimate-minecraft-agent",
+  "name": "minecraft-bot",
   "version": "1.0.0",
   "main": "manager.js",
   "scripts": {
     "start": "node manager.js"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
     "mineflayer": "^4.21.0",
     "mineflayer-armor-manager": "^1.0.5",
     "mineflayer-collectblock": "^1.2.0",
