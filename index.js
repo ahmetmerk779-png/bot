@@ -15,18 +15,16 @@ const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://ap
 
 let bot;
 
-// YZ'nın oyun kurallarını anladığı ve JSON formatında komut ürettiği prompt
 const AI_SYSTEM_PROMPT = `
-Sen "AI Paul" seviyesinde, kendi kararlarını verebilen otonom bir Minecraft botusun.
-Kullanıcı sana bir şey söylediğinde veya durum raporu verildiğinde SADECE ve SADECE aşağıdaki JSON formatında cevap vermelisin. Başka hiçbir düz metin, selamlama veya açıklama YAZMA! Sadece JSON!
+Sen otonom bir Minecraft botusun. Kullanıcının komutlarını SADECE aşağıdaki JSON formatında ver. Başka hiçbir şey yazma.
+ÖNEMLİ: Hedefleri (target) daima küçük harflerle ve Minecraft İngilizce isimleriyle yaz (Örn: dirt, log, stone, zombie, cow, pig). 
 
-Kullanabileceğin eylemler (action):
-1. "chat" - Sadece konuşmak için. (Örnek: {"action": "chat", "message": "Merhaba!"})
-2. "collect" - Bir bloğu kırmak/toplamak için. (Örnek: {"action": "collect", "target": "log"})
-3. "move" - Rastgele veya birine gitmek için. (Örnek: {"action": "move", "target": "player_name"})
-4. "stop" - Tüm işlemleri durdurmak için. (Örnek: {"action": "stop"})
-
-Eğer bir blok bulman veya kırman istenirse "collect", yanına gelmem istenirse "move" kullan.
+Eylemler:
+1. "chat" - Sadece konuşmak için. (Örn: {"action": "chat", "message": "Merhaba!"})
+2. "collect" - Bir bloğu kırmak/kazmak için. (Örn: {"action": "collect", "target": "dirt"})
+3. "attack" - Bir yaratığa saldırmak için. (Örn: {"action": "attack", "target": "zombie"})
+4. "move" - Birinin yanına gitmek için. (Örn: {"action": "move", "target": "Ahmet"})
+5. "stop" - Durmak için. (Örn: {"action": "stop"})
 `;
 
 app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
@@ -40,53 +38,71 @@ app.post('/connect', (req, res) => {
     bot.loadPlugin(collectBlock.plugin);
     bot.loadPlugin(pvp);
 
-    bot.on('spawn', () => console.log('Otonom Ajan Başlatıldı!'));
+    bot.on('spawn', () => console.log('Esnek Arama Modüllü Ajan Başlatıldı!'));
 
     bot.on('chat', async (user, message) => {
         if (user === bot.username) return;
 
         try {
-            // Groq AI'dan JSON formatında komut istiyoruz
             const response = await groq.chat.completions.create({
                 messages: [
                     { role: "system", content: AI_SYSTEM_PROMPT },
                     { role: "user", content: `${user} diyor ki: ${message}` }
                 ],
                 model: "llama-3.3-70b-versatile",
-                temperature: 0.1 // AI'ın saçmalamasını engeller, net JSON verir
+                temperature: 0.1
             });
 
             const aiResponse = response.choices[0].message.content.trim();
-            console.log("AI Kararı:", aiResponse); // Render loglarında AI'ın ne düşündüğünü görebilirsin
-
-            // AI'ın verdiği JSON'u ayrıştırıp oyuna döküyoruz
+            console.log("AI Kararı:", aiResponse); 
             const command = JSON.parse(aiResponse);
 
             if (command.action === 'chat') {
                 bot.chat(command.message);
             } 
             
+            // YENİ AKILLI KAZMA İŞLEMİ
             else if (command.action === 'collect') {
-                bot.chat(`Anlaşıldı, ${command.target} toplamaya gidiyorum...`);
-                // İstenen bloğu etrafta bul
-                const blockType = bot.registry.blocksByName[command.target];
-                if (!blockType) {
-                    bot.chat("Bu bloğun tam İngilizce kod adını bilmiyorum.");
-                    return;
-                }
-                const targetBlock = bot.findBlock({ matching: blockType.id, maxDistance: 32 });
+                const searchName = command.target.toLowerCase();
+                bot.chat(`Anlaşıldı, içinde '${searchName}' geçen bir blok arıyorum...`);
+                
+                // Birebir eşleşme yerine, adının içinde o kelime geçen en yakın bloğu bulur
+                const targetBlock = bot.findBlock({ 
+                    matching: (b) => b.name.toLowerCase().includes(searchName), 
+                    maxDistance: 64 
+                });
                 
                 if (targetBlock) {
+                    bot.chat(`${targetBlock.name} buldum! Kazıyorum.`);
                     bot.collectBlock.collect(targetBlock, err => {
-                        if (err) bot.chat("Blok toplanırken bir sorun çıktı, yol kapalı olabilir.");
+                        if (err) bot.chat("Kazarken bir sorun çıktı, yol kapalı veya aletim yok.");
                     });
                 } else {
-                    bot.chat("Etrafta bu bloktan göremiyorum.");
+                    bot.chat(`Etrafımda '${searchName}' ile ilgili hiçbir blok bulamadım.`);
                 }
             } 
             
+            // YENİ AKILLI SALDIRMA İŞLEMİ
+            else if (command.action === 'attack') {
+                const searchName = command.target.toLowerCase();
+                bot.chat(`Hedef arıyorum: ${searchName}...`);
+                
+                // İsmi benzeyen en yakın varlığa saldırır
+                const targetEntity = bot.nearestEntity(e => 
+                    (e.name && e.name.toLowerCase().includes(searchName)) || 
+                    (e.type === 'player' && e.username && e.username.toLowerCase().includes(searchName))
+                );
+                
+                if (targetEntity) {
+                    bot.chat("Hedefi buldum, saldırıyorum!");
+                    bot.pvp.attack(targetEntity);
+                } else {
+                    bot.chat(`Etrafta saldırmak için ${searchName} bulamadım.`);
+                }
+            }
+            
             else if (command.action === 'move') {
-                bot.chat(`Hareket ediyorum...`);
+                bot.chat(`Yanına geliyorum...`);
                 const targetPlayer = bot.players[user]?.entity;
                 if (targetPlayer) {
                     bot.pathfinder.setGoal(new goals.GoalFollow(targetPlayer, 2), true);
@@ -97,16 +113,17 @@ app.post('/connect', (req, res) => {
             
             else if (command.action === 'stop') {
                 bot.pathfinder.setGoal(null);
-                bot.chat("Durdum.");
+                bot.pvp.stop();
+                bot.chat("Bütün eylemleri durdurdum.");
             }
 
         } catch (error) {
-            console.log("YZ İşlem Hatası veya JSON Parse Hatası:", error);
-            bot.chat("Kafam karıştı, tekrar söyler misin?");
+            console.log("YZ İşlem Hatası:", error);
+            bot.chat("Ne demek istediğini anlayamadım veya kelimeyi çeviremedim.");
         }
     });
 
-    res.send("Üst Düzey Ajan Bot Başlatıldı!");
+    res.send("Bot Başlatıldı!");
 });
 
 server.listen(process.env.PORT || 3000);
