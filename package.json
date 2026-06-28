@@ -6,14 +6,14 @@
     "start": "node index.js"
   },
   "dependencies": {
-    "express": "4.21.0",
-    "socket.io": "4.7.5",
-    "mineflayer": "4.21.0",
-    "mineflayer-pathfinder": "2.4.5",
-    "mineflayer-collectblock": "0.6.0",
-    "mineflayer-pvp": "4.0.0",
-    "mineflayer-collectitems": "1.1.0",
-    "openai": "4.50.0",
-    "dotenv": "16.4.5"
+    "express": "latest",
+    "socket.io": "latest",
+    "mineflayer": "latest",
+    "mineflayer-pathfinder": "latest",
+    "mineflayer-collectblock": "latest",
+    "mineflayer-pvp": "latest",
+    "mineflayer-collectitems": "latest",
+    "openai": "latest",
+    "dotenv": "latest"
   }
 }
