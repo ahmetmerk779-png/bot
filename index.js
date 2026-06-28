@@ -1,140 +1,94 @@
-const express = require('express');
-const http = require('http');
 const mineflayer = require('mineflayer');
-const { pathfinder, goals } = require('mineflayer-pathfinder');
+const { pathfinder, goals, Movements } = require('mineflayer-pathfinder');
 const collectBlock = require('mineflayer-collectblock');
 const pvp = require('mineflayer-pvp').plugin;
-const { OpenAI } = require('openai');
+const armorManager = require('mineflayer-armor-manager');
+const fs = require('fs');
 require('dotenv').config();
 
-const app = express();
-const server = http.createServer(app);
-app.use(express.urlencoded({ extended: true }));
+// --- HAFIZA SİSTEMİ ---
+let memories = {};
+try {
+    if (fs.existsSync('memory.json')) {
+        memories = JSON.parse(fs.readFileSync('memory.json', 'utf8'));
+    }
+} catch (e) { console.log("Hafıza dosyası oluşturuluyor..."); }
 
-const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' });
+function saveMemory() { fs.writeFileSync('memory.json', JSON.stringify(memories, null, 2)); }
 
-let bot;
-
-const AI_SYSTEM_PROMPT = `
-Sen otonom bir Minecraft botusun. Kullanıcının komutlarını SADECE aşağıdaki JSON formatında ver.
-ÖNEMLİ KURALLAR:
-1. Hedefleri (target) İngilizce Minecraft eşya isimleriyle yaz (Örn: dirt, log, stone).
-2. EĞER kullanıcı senden yapamayacağın bir şey isterse (Örneğin: "eşya üret", "kazma yap", "ev yap"), SADECE "chat" eylemini kullan ve "Henüz eşya üretemiyorum, sadece blok kırabilir veya eşya atabilirim." gibi bir cevap ver. JSON yapısını asla bozma!
-
-Eylemler:
-1. "chat" - Konuşmak veya yapamadığın bir görevi reddetmek için. (Örn: {"action": "chat", "message": "Bunu yapamam."})
-2. "collect" - Bir bloğu kırmak/kazmak için. (Örn: {"action": "collect", "target": "dirt"})
-3. "attack" - Bir yaratığa saldırmak için. (Örn: {"action": "attack", "target": "zombie"})
-4. "move" - Birinin yanına gitmek için. (Örn: {"action": "move", "target": "player_name"})
-5. "drop" - Envanterindeki bir eşyayı atmak/vermek için. (Örn: {"action": "drop", "target": "log"})
-6. "stop" - Durmak için.
-`;
-
-app.get('/', (req, res) => res.sendFile(__dirname + '/index.html'));
-
-app.post('/connect', (req, res) => {
-    const { host, username, version } = req.body;
-    if (bot) bot.quit();
-
-    bot = mineflayer.createBot({ host, username, version });
-    bot.loadPlugin(pathfinder);
-    bot.loadPlugin(collectBlock.plugin);
-    bot.loadPlugin(pvp);
-
-    bot.on('spawn', () => console.log('Güncellenmiş Ajan Başlatıldı!'));
-
-    bot.on('chat', async (user, message) => {
-        if (user === bot.username) return;
-
-        try {
-            const response = await groq.chat.completions.create({
-                messages: [
-                    { role: "system", content: AI_SYSTEM_PROMPT },
-                    { role: "user", content: `${user} diyor ki: ${message}` }
-                ],
-                model: "llama-3.3-70b-versatile",
-                temperature: 0.1
-            });
-
-            const aiResponse = response.choices[0].message.content.trim();
-            console.log("AI Kararı:", aiResponse); 
-            const command = JSON.parse(aiResponse);
-
-            if (command.action === 'chat') {
-                bot.chat(command.message);
-            } 
-            
-            else if (command.action === 'collect') {
-                const searchName = command.target.toLowerCase();
-                bot.chat(`Anlaşıldı, içinde '${searchName}' geçen bir blok arıyorum...`);
-                
-                const targetBlock = bot.findBlock({ 
-                    matching: (b) => b.name.toLowerCase().includes(searchName), 
-                    maxDistance: 64 
-                });
-                
-                if (targetBlock) {
-                    bot.chat(`${targetBlock.name} buldum! Kazıyorum.`);
-                    bot.collectBlock.collect(targetBlock, err => {
-                        if (err) bot.chat("Kazarken bir sorun çıktı, ağaç çok yüksekte veya önüm kapalı.");
-                    });
-                } else {
-                    bot.chat(`Etrafımda '${searchName}' bulamadım.`);
-                }
-            } 
-            
-            else if (command.action === 'attack') {
-                const searchName = command.target.toLowerCase();
-                bot.chat(`Hedef arıyorum: ${searchName}...`);
-                const targetEntity = bot.nearestEntity(e => 
-                    (e.name && e.name.toLowerCase().includes(searchName)) || 
-                    (e.type === 'player' && e.username && e.username.toLowerCase().includes(searchName))
-                );
-                
-                if (targetEntity) {
-                    bot.chat("Hedefi buldum, saldırıyorum!");
-                    bot.pvp.attack(targetEntity);
-                } else {
-                    bot.chat(`Etrafta ${searchName} bulamadım.`);
-                }
-            }
-
-            // YENİ: EŞYA ATMA MODÜLÜ
-            else if (command.action === 'drop') {
-                const searchName = command.target.toLowerCase();
-                const itemToDrop = bot.inventory.items().find(i => i.name.toLowerCase().includes(searchName));
-                
-                if (itemToDrop) {
-                    bot.chat(`Sana ${itemToDrop.name} atıyorum...`);
-                    bot.tossStack(itemToDrop);
-                } else {
-                    bot.chat(`Envanterimde '${searchName}' bulamadım.`);
-                }
-            }
-            
-            else if (command.action === 'move') {
-                bot.chat(`Yanına geliyorum...`);
-                const targetPlayer = bot.players[user]?.entity;
-                if (targetPlayer) {
-                    bot.pathfinder.setGoal(new goals.GoalFollow(targetPlayer, 2), true);
-                } else {
-                    bot.chat("Seni göremiyorum, çok uzaktasın.");
-                }
-            } 
-            
-            else if (command.action === 'stop') {
-                bot.pathfinder.setGoal(null);
-                bot.pvp.stop();
-                bot.chat("Durdum.");
-            }
-
-        } catch (error) {
-            console.log("YZ İşlem Hatası:", error);
-            bot.chat("Bunu nasıl yapacağımı henüz bilmiyorum veya cümleni tam anlayamadım.");
-        }
-    });
-
-    res.send("Bot Başlatıldı!");
+// --- BOT BAŞLATMA ---
+const bot = mineflayer.createBot({
+    host: process.env.SERVER_IP || 'localhost',
+    username: 'Ultimate_Agent',
+    version: '1.21.1'
 });
 
-server.listen(process.env.PORT || 3000);
+bot.loadPlugin(pathfinder);
+bot.loadPlugin(collectBlock.plugin);
+bot.loadPlugin(pvp);
+bot.loadPlugin(armorManager);
+
+// --- DEVRİYE MODÜLÜ ---
+let isPatrolling = false;
+const patrolRoute = ['maden', 'depo', 'ev']; 
+let currentPatrolIndex = 0;
+
+async function startPatrol() {
+    isPatrolling = true;
+    while (isPatrolling) {
+        const locName = patrolRoute[currentPatrolIndex];
+        if (memories[locName]) {
+            bot.chat(`Gidilen durak: ${locName}`);
+            await bot.pathfinder.goto(new goals.GoalBlock(memories[locName].x, memories[locName].y, memories[locName].z));
+            await new Promise(r => setTimeout(r, 5000));
+        }
+        currentPatrolIndex = (currentPatrolIndex + 1) % patrolRoute.length;
+    }
+}
+
+// --- ANA DÖNGÜ (PHYSIC TICK) ---
+bot.on('physicTick', () => {
+    // 1. Hayatta Kalma
+    if (bot.food < 15) {
+        const food = bot.inventory.items().find(i => i.name.includes('cooked') || i.name === 'apple');
+        if (food) bot.equip(food, 'hand').then(() => bot.consume());
+    }
+
+    // 2. Sosyal Farkındalık (Göz Takibi)
+    const target = bot.nearestEntity(e => e.type === 'player' && bot.entity.position.distanceTo(e.position) < 8);
+    if (target && !bot.pathfinder.isMoving()) {
+        bot.lookAt(target.position.offset(0, 1.6, 0));
+    }
+
+    // 3. Tehlike (Creeper)
+    const danger = bot.nearestEntity(e => e.name === 'creeper' && e.position.distanceTo(bot.entity.position) < 5);
+    if (danger) {
+        bot.chat("TEHLİKE! KAÇIYORUM!");
+        bot.pathfinder.setGoal(new goals.GoalNear(bot.entity.position.x + 10, bot.entity.position.y, bot.entity.position.z + 10, 1));
+    }
+});
+
+// --- KOMUT SİSTEMİ ---
+bot.on('chat', async (username, message) => {
+    if (username === bot.username) return;
+    const args = message.split(' ');
+
+    if (message.startsWith('burayı kaydet ')) {
+        memories[args[2]] = bot.entity.position;
+        saveMemory();
+        bot.chat(`'${args[2]}' kaydedildi.`);
+    } 
+    else if (args[0] === 'git') {
+        const pos = memories[args[1]];
+        if (pos) bot.pathfinder.setGoal(new goals.GoalBlock(pos.x, pos.y, pos.z));
+    }
+    else if (message === 'devriyeyi başlat') {
+        startPatrol();
+    }
+    else if (message === 'devriyeyi durdur') {
+        isPatrolling = false;
+        bot.pathfinder.setGoal(null);
+    }
+});
+
+bot.on('spawn', () => bot.chat("Sisteme giriş yaptım. Otonom mod aktif."));
