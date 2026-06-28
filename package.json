@@ -13,5 +13,5 @@
     "mineflayer-pathfinder": "latest",
     "mineflayer-pvp": "latest",
     "openai": "latest"
-  }
+  "express": "^4.18.2"
 }
