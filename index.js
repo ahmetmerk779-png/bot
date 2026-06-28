@@ -6,7 +6,6 @@ const mineflayer = require('mineflayer');
 const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const collectBlock = require('mineflayer-collectblock');
 const pvp = require('mineflayer-pvp').plugin;
-const collectItems = require('mineflayer-collectitems');
 const { OpenAI } = require('openai');
 require('dotenv').config();
 
@@ -27,22 +26,24 @@ app.post('/connect', (req, res) => {
     bot.loadPlugin(pathfinder);
     bot.loadPlugin(collectBlock.plugin);
     bot.loadPlugin(pvp);
-    bot.loadPlugin(collectItems.plugin);
 
-    bot.on('spawn', () => io.emit('log', 'Bot dünyada!'));
+    bot.on('spawn', () => io.emit('log', 'Bot dünyaya başarıyla giriş yaptı!'));
     
     bot.on('chat', async (user, message) => {
         if (user === bot.username) return;
         io.emit('log', `${user}: ${message}`);
         
         const response = await groq.chat.completions.create({
-            messages: [{ role: "user", content: message }],
+            messages: [{ role: "system", content: "Sen bir Minecraft botusun." },
+                       { role: "user", content: message }],
             model: "llama-3.3-70b-versatile",
         });
-        bot.chat(response.choices[0].message.content);
+        
+        const reply = response.choices[0].message.content;
+        bot.chat(reply);
     });
 
-    res.send("Bot Başlatıldı!");
+    res.send("Bot şu an sunucuya bağlanıyor, logları takip et.");
 });
 
 http.listen(process.env.PORT || 3000);
