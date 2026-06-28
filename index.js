@@ -10,19 +10,16 @@ require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
-const io = require('socket.io')(server);
-
 app.use(express.urlencoded({ extended: true }));
+
 const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY, baseURL: 'https://api.groq.com/openai/v1' });
 
 let bot;
 
-// Hafıza Yönetimi
-function saveToMemory(key, value) {
-    let memory = fs.existsSync('memory.json') ? JSON.parse(fs.readFileSync('memory.json')) : {};
-    memory[key] = value;
-    fs.writeFileSync('memory.json', JSON.stringify(memory));
-}
+// Dosya Yolu Sorununu Çözmek İçin Ana Dizin Yönlendirmesi
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
 
 app.post('/connect', (req, res) => {
     const { host, username, version } = req.body;
@@ -33,25 +30,29 @@ app.post('/connect', (req, res) => {
     bot.loadPlugin(collectBlock.plugin);
     bot.loadPlugin(pvp);
 
-    bot.on('spawn', () => console.log('Bot dünyada!'));
+    // OTONOM ÖZELLİKLER
+    bot.on('physicTick', () => {
+        // Auto Eat
+        if (bot.food < 15) {
+            const food = bot.inventory.items().find(i => i.name.includes('cooked') || i.name === 'bread');
+            if (food) bot.equip(food, 'hand').then(() => bot.consume());
+        }
+
+        // Auto Attack (Yakındaki canavara otomatik saldır)
+        const entity = bot.nearestEntity(e => e.type === 'mob' && e.position.distanceTo(bot.entity.position) < 5);
+        if (entity) bot.pvp.attack(entity);
+    });
 
     bot.on('chat', async (user, message) => {
         if (user === bot.username) return;
 
-        // Öğrenme Komutu
         if (message.startsWith('öğren:')) {
-            const [_, key, val] = message.split(':');
-            saveToMemory(key.trim(), val.trim());
-            bot.chat(`Artık ${key} hakkında şunu biliyorum: ${val}`);
-            return;
-        }
-
-        // Aksiyon Komutları
-        if (message.includes('odun kır')) {
-            const block = bot.findBlock({ matching: (b) => b.name.includes('log') });
-            if (block) bot.collectBlock.collect(block);
+            const [_, k, v] = message.split(':');
+            let m = fs.existsSync('memory.json') ? JSON.parse(fs.readFileSync('memory.json')) : {};
+            m[k.trim()] = v.trim();
+            fs.writeFileSync('memory.json', JSON.stringify(m));
+            bot.chat("Bunu hafızama aldım.");
         } else {
-            // AI Yanıtı
             const response = await groq.chat.completions.create({
                 messages: [{ role: "user", content: message }],
                 model: "llama-3.3-70b-versatile",
@@ -60,16 +61,7 @@ app.post('/connect', (req, res) => {
         }
     });
 
-    // Otonom Gezinme
-    setInterval(() => {
-        if (!bot.pathfinder.isMoving()) {
-            const randomX = Math.floor(bot.entity.position.x + (Math.random() * 10 - 5));
-            const randomZ = Math.floor(bot.entity.position.z + (Math.random() * 10 - 5));
-            bot.pathfinder.setGoal(new goals.GoalBlock(randomX, bot.entity.position.y, randomZ));
-        }
-    }, 60000);
-
-    res.send("Bot bağlandı ve otonom moda geçti.");
+    res.send("Bot bağlandı ve tüm otonom modlar aktif!");
 });
 
 server.listen(process.env.PORT || 3000);
