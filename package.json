@@ -6,12 +6,9 @@
     "start": "node manager.js"
   },
   "dependencies": {
-    "dotenv": "latest",
-    "mineflayer": "latest",
-    "mineflayer-armor-manager": "latest",
-    "mineflayer-collectblock": "latest",
-    "mineflayer-pathfinder": "latest",
-    "mineflayer-pvp": "latest",
-    "openai": "latest"
-  "express": "^4.18.2"
+    "express": "^4.18.2",
+    "mineflayer": "^4.22.0",
+    "mineflayer-pathfinder": "^2.4.3",
+    "openai": "^4.0.0"
+  }
 }
