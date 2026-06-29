@@ -1,7 +1,6 @@
 const { addDiscovery } = require('../memory/memoryManager');
 
 async function execute(bot, params) {
-  // Mevcut gözlem kodları...
   const entities = bot.entities;
   const playerNames = Object.values(entities)
     .filter(e => e.type === 'player')
@@ -10,21 +9,19 @@ async function execute(bot, params) {
     .filter(e => e.type === 'mob')
     .map(e => `${e.name} (${e.position.x.toFixed(1)}, ${e.position.y.toFixed(1)}, ${e.position.z.toFixed(1)})`);
   
-  // Değerli bloklar
   const valuableBlocks = ['iron_ore', 'gold_ore', 'diamond_ore'];
   const foundBlocks = valuableBlocks.filter(type => 
     bot.findBlock({ matching: block => block.name === type, maxDistance: 15 })
   );
 
-  // YENİ: Köy, mağara, su tespiti (gözlem sırasında da yap)
-  // Köylü varlığı
+  // Köy tespiti
   const villagers = Object.values(entities).filter(e => e.type === 'mob' && e.name === 'villager');
   if (villagers.length > 0) {
     const coords = [villagers[0].position.x, villagers[0].position.y, villagers[0].position.z];
     addDiscovery('village', coords, 'Köy');
   }
 
-  // Su varlığı (basitçe, etrafta su blokları var mı?)
+  // Su tespiti
   const waterBlocks = Object.values(entities).filter(e => e.type === 'object' && e.name === 'water');
   if (waterBlocks.length > 0) {
     const coords = [waterBlocks[0].position.x, waterBlocks[0].position.y, waterBlocks[0].position.z];
