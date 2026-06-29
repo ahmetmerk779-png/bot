@@ -5,7 +5,7 @@ const { Vec3 } = require('vec3');
 const { OpenAI } = require('openai');
 const express = require('express');
 
-// Groq API Kurulumu (Render'da GROQ_API_KEY olarak ekle!)
+// Groq API Kurulumu (Render'da GROQ_API_KEY'i eklemeyi unutma!)
 const openai = new OpenAI({ 
     apiKey: process.env.GROQ_API_KEY, 
     baseURL: 'https://api.groq.com/openai/v1' 
@@ -16,7 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 
 let bot = null;
 let isMuted = false;
-let chatHistory = []; // Token tasarrufu için geçmişi tutuyoruz
+let chatHistory = []; 
 
 // --- EYLEMLER ---
 const actions = {
@@ -61,24 +61,25 @@ async function getAIResponse(username, message) {
 }
 
 // --- BOT LOGİC ---
-function createBot(username, host, port) {
+function createBot(username, host, port, password) {
     bot = mineflayer.createBot({ host, port: parseInt(port), username, version: '1.21.1' });
     bot.loadPlugin(pathfinder);
     bot.loadPlugin(collectBlock);
 
-    bot.on('end', () => setTimeout(() => createBot(username, host, port), 5000));
+    bot.on('end', () => setTimeout(() => createBot(username, host, port, password), 5000));
 
     bot.on('chat', async (username, message) => {
         if (username === bot.username) return;
 
+        // Login Sistemi
+        if (password && message.toLowerCase().includes('login')) bot.chat('/login ' + password);
+        
         // Komutlar
         if (message.includes('!sessiz')) { isMuted = true; bot.chat("Sessiz moda geçtim."); return; }
         if (message.includes('!konus')) { isMuted = false; bot.chat("Geri döndüm."); return; }
-        if (message.toLowerCase().includes('login')) bot.chat('/login ŞİFREN'); // ŞİFRENİ BURAYA YAZ
-        
         if (isMuted) return;
 
-        // Botun ismi geçiyorsa cevap ver
+        // Botun ismi geçiyorsa veya ! ile başlıyorsa cevap ver
         if (message.toLowerCase().includes(bot.username.toLowerCase()) || message.startsWith('!')) {
             const aiCevabi = await getAIResponse(username, message);
             console.log("AI:", aiCevabi);
@@ -97,10 +98,20 @@ function createBot(username, host, port) {
 }
 
 // --- WEB PANELİ ---
-app.get('/', (req, res) => res.send('<form action="/connect" method="POST"><input name="ip" placeholder="IP"><input name="port" value="25565"><input name="name" placeholder="Bot İsmi"><button>Başlat</button></form>'));
+app.get('/', (req, res) => res.send(`
+    <form action="/connect" method="POST">
+        <input name="ip" placeholder="IP" required><br>
+        <input name="port" value="25565" required><br>
+        <input name="name" placeholder="Bot İsmi" required><br>
+        <input type="password" name="password" placeholder="Sunucu Şifresi"><br>
+        <button type="submit">Botu Başlat</button>
+    </form>
+`));
+
 app.post('/connect', (req, res) => {
-    createBot(req.body.name, req.body.ip, req.body.port);
-    res.send("Bot bağlandı!");
+    const { ip, port, name, password } = req.body;
+    createBot(name, ip, port, password);
+    res.send("Bot bağlandı! Logları takip et.");
 });
 
 app.listen(process.env.PORT || 3000);
