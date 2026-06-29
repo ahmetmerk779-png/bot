@@ -13,14 +13,13 @@
       <span id="status">🟢 Çevrimiçi</span>
     </header>
 
-    <!-- ============ AYARLAR ============ -->
     <div id="settings-panel">
       <h2>⚙️ Bağlantı Ayarları</h2>
       <form id="settingsForm">
         <input type="text" id="setBotName" placeholder="Bot İsmi" value="BenimAIBot">
-        <input type="text" id="setServerHost" placeholder="Sunucu IP" value="aesirmc.com">
+        <input type="text" id="setServerHost" placeholder="Sunucu IP" value="voidforge763.mcsh.i">
         <input type="number" id="setServerPort" placeholder="Port" value="25565">
-        <input type="text" id="setVersion" placeholder="Sürüm (örn: 1.8.9)" value="1.8.9">
+        <input type="text" id="setVersion" placeholder="Sürüm" value="1.8.9">
         <select id="setAuth">
           <option value="offline">Offline</option>
           <option value="microsoft">Microsoft</option>
@@ -30,7 +29,6 @@
       </form>
     </div>
 
-    <!-- ============ BOT DURUMU ============ -->
     <div id="botInfo">
       <h2>📊 Bot Durumu</h2>
       <p>İsim: <span id="botName">-</span></p>
@@ -40,7 +38,6 @@
       <p>Koordinat: <span id="coords">-</span></p>
     </div>
 
-    <!-- ============ KONSOL ============ -->
     <div id="console">
       <h2>📋 Konsol</h2>
       <div id="logContainer"></div>
@@ -50,18 +47,16 @@
       </div>
     </div>
 
-    <!-- ============ HIZLI KOMUTLAR (KULLANICI EKLEYEBİLİR) ============ -->
     <div id="quickCommands">
       <h2>⚡ Hızlı Komutlar</h2>
       <div id="addQuickCommand">
-        <input type="text" id="newQuickLabel" placeholder="Buton Adı (örn: Kaz)" />
-        <input type="text" id="newQuickCommand" placeholder="Komut (örn: mine iron_ore)" />
+        <input type="text" id="newQuickLabel" placeholder="Buton Adı" />
+        <input type="text" id="newQuickCommand" placeholder="Komut" />
         <button id="addQuickBtn">➕ Ekle</button>
       </div>
       <div id="quickCommandsList"></div>
     </div>
 
-    <!-- ============ WAYPOINT ============ -->
     <div id="waypointSection">
       <h2>📍 Waypoint Yönetimi</h2>
       <div>
@@ -80,7 +75,6 @@
       <ul id="waypointList"></ul>
     </div>
 
-    <!-- ============ KEŞİF ============ -->
     <div id="discoveriesSection">
       <h2>🗺️ Keşfedilen Yerler</h2>
       <ul id="discoveriesList"></ul>
@@ -90,7 +84,6 @@
       <p>Minecraft AI Bot v2.0 | Powered by Groq</p>
     </footer>
   </div>
-
   <script src="/socket.io/socket.io.js"></script>
   <script src="/script.js"></script>
 </body>
