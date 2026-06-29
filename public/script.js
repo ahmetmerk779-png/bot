@@ -1,49 +1,51 @@
 // Mevcut socket.io bağlantısı ve diğer fonksiyonlar...
 
-// Waypoint Ekle
-document.getElementById('addWaypointBtn')?.addEventListener('click', () => {
-  const name = document.getElementById('waypointName')?.value || 'hedef';
-  const x = document.getElementById('waypointX')?.value || 0;
-  const y = document.getElementById('waypointY')?.value || 64;
-  const z = document.getElementById('waypointZ')?.value || 0;
-  const command = `/waypoint add ${name} ${x} ${y} ${z}`;
+// 1. Konum Paylaşma
+document.getElementById('shareLocationBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('shareLocationTarget')?.value;
+  const command = `/shareLocation konum ${target}`.trim();
   sendCommand(command);
 });
 
-// Waypoint Git
-document.getElementById('goWaypointBtn')?.addEventListener('click', () => {
-  const name = document.getElementById('waypointGoName')?.value;
-  if (!name) return alert('Waypoint adı girin.');
-  const command = `/waypoint go ${name}`;
+// 2. Neredesin?
+document.getElementById('whereBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('whereTarget')?.value;
+  const command = `/shareLocation nerede ${target}`.trim();
   sendCommand(command);
 });
 
-// Waypoint Listele
-document.getElementById('listWaypointsBtn')?.addEventListener('click', () => {
-  const command = `/waypoint list`;
+// 3. TPA At
+document.getElementById('tpaBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('tpaTarget')?.value;
+  if (!target) return alert('Oyuncu adı girin.');
+  const command = `/shareLocation tpa ${target}`;
   sendCommand(command);
 });
 
-// Mevcut konumu waypoint olarak kaydet (kısayol)
-document.getElementById('saveCurrentPosBtn')?.addEventListener('click', () => {
-  const name = document.getElementById('waypointName')?.value || 'hedef';
-  const command = `/waypoint ${name}`;
+// 4. TPA Kabul
+document.getElementById('tpacceptBtn')?.addEventListener('click', () => {
+  const command = `/shareLocation tpaccept`;
   sendCommand(command);
 });
 
-// Waypoint Sil
-document.getElementById('deleteWaypointBtn')?.addEventListener('click', () => {
-  const name = document.getElementById('waypointDeleteName')?.value;
-  if (!name) return alert('Waypoint adı girin.');
-  const command = `/waypoint delete ${name}`;
+// 5. TPA Reddet
+document.getElementById('tpadenyBtn')?.addEventListener('click', () => {
+  const command = `/shareLocation tpadeny`;
   sendCommand(command);
 });
 
-// Waypoint listesini güncelleme (socket.io ile)
-socket.on('waypointsUpdate', (data) => {
-  const list = document.getElementById('waypointsList');
-  if (!list) return;
-  list.innerHTML = data.map(w => 
-    `<li><strong>${w.name}</strong> - Koordinat: ${w.coords.join(', ')} (${new Date(w.timestamp).toLocaleString()})</li>`
-  ).join('');
+// 6. Çağır (Bana gel)
+document.getElementById('callBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('callTarget')?.value;
+  if (!target) return alert('Oyuncu adı girin.');
+  const command = `/shareLocation çağır ${target}`;
+  sendCommand(command);
+});
+
+// 7. Waypoint konumu paylaş
+document.getElementById('shareWaypointBtn')?.addEventListener('click', () => {
+  const wpName = document.getElementById('shareWaypointName')?.value;
+  if (!wpName) return alert('Waypoint adı girin.');
+  const command = `/shareLocation waypoint ${wpName}`;
+  sendCommand(command);
 });
