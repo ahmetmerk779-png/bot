@@ -1,3 +1,4 @@
+// server.js - Web sunucusu, Socket.io, şifre koruması ve /api/config
 const express = require('express');
 const path = require('path');
 const http = require('http');
@@ -10,6 +11,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -17,8 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ============ ŞİFRE KORUMASI ============
 app.use((req, res, next) => {
-  // /api, /login, /viewer ve statik dosyalar şifresiz
-  const publicPaths = ['/login', '/css', '/js', '/images', '/favicon.ico', '/viewer', '/api'];
+  const publicPaths = ['/login', '/css', '/js', '/images', '/favicon.ico'];
   if (publicPaths.some(p => req.path.startsWith(p))) {
     return next();
   }
@@ -67,11 +68,12 @@ app.post('/login', (req, res) => {
   }
 });
 
+// Ana sayfa
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============ API ============
+// ============ API: KONFİGÜRASYON ============
 app.get('/api/config', (req, res) => {
   try {
     res.json({
@@ -98,6 +100,7 @@ app.post('/api/config', (req, res) => {
   }
 });
 
+// API: Bot durumu
 app.get('/api/status', (req, res) => {
   res.json({
     botName: config.botName,
@@ -109,6 +112,7 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// API: Waypoint listesi
 app.get('/api/waypoints', (req, res) => {
   try {
     const { getWaypoints } = require('./memory/memoryManager');
@@ -116,6 +120,7 @@ app.get('/api/waypoints', (req, res) => {
   } catch { res.json([]); }
 });
 
+// API: Keşif listesi
 app.get('/api/discoveries', (req, res) => {
   try {
     const { getDiscoveries } = require('./memory/memoryManager');
@@ -136,6 +141,7 @@ io.on('connection', (socket) => {
   });
 });
 
+// Sunucuyu başlat
 const PORT = config.port || 3000;
 server.listen(PORT, () => {
   console.log(`🌐 Web sunucusu http://localhost:${PORT}`);
