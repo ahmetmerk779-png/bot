@@ -13,6 +13,7 @@
       <span id="status">🟢 Çevrimiçi</span>
     </header>
 
+    <!-- AYARLAR -->
     <div id="settings-panel">
       <h2>⚙️ Bağlantı Ayarları</h2>
       <form id="settingsForm">
@@ -29,6 +30,7 @@
       </form>
     </div>
 
+    <!-- BOT DURUMU -->
     <div id="botInfo">
       <h2>📊 Bot Durumu</h2>
       <p>İsim: <span id="botName">-</span></p>
@@ -38,6 +40,14 @@
       <p>Koordinat: <span id="coords">-</span></p>
     </div>
 
+    <!-- RADAR -->
+    <div id="radarContainer">
+      <h2>📡 Radar</h2>
+      <canvas id="radarCanvas" width="400" height="400"></canvas>
+      <p id="radarLegend">🟢 Oyuncu | 🔴 Düşman | 🟡 Hayvan | ⚪ Diğer</p>
+    </div>
+
+    <!-- KONSOL -->
     <div id="console">
       <h2>📋 Konsol</h2>
       <div id="logContainer"></div>
@@ -47,6 +57,7 @@
       </div>
     </div>
 
+    <!-- HIZLI KOMUTLAR -->
     <div id="quickCommands">
       <h2>⚡ Hızlı Komutlar</h2>
       <div id="addQuickCommand">
@@ -57,6 +68,7 @@
       <div id="quickCommandsList"></div>
     </div>
 
+    <!-- WAYPOINT -->
     <div id="waypointSection">
       <h2>📍 Waypoint Yönetimi</h2>
       <div>
@@ -75,6 +87,7 @@
       <ul id="waypointList"></ul>
     </div>
 
+    <!-- KEŞİF -->
     <div id="discoveriesSection">
       <h2>🗺️ Keşfedilen Yerler</h2>
       <ul id="discoveriesList"></ul>
@@ -84,6 +97,7 @@
       <p>Minecraft AI Bot v2.0 | Powered by Groq</p>
     </footer>
   </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/script.js"></script>
 </body>
