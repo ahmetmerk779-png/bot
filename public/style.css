@@ -26,14 +26,14 @@ header h1 { color: #00d4ff; }
   border: 1px solid #00ff88;
 }
 
-#settings-panel, #botInfo, #radarContainer, #console, #quickCommands, #waypointSection, #discoveriesSection {
+#settings-panel, #botInfo, #console, #quickCommands, #waypointSection, #discoveriesSection {
   background: #1a1a2e;
   padding: 15px;
   border-radius: 10px;
   border: 1px solid #2a2a4e;
   margin-bottom: 15px;
 }
-#settings-panel h2, #botInfo h2, #radarContainer h2, #console h2, #quickCommands h2, #waypointSection h2, #discoveriesSection h2 {
+#settings-panel h2, #botInfo h2, #console h2, #quickCommands h2, #waypointSection h2, #discoveriesSection h2 {
   font-size: 18px;
   color: #00d4ff;
   margin-bottom: 10px;
@@ -61,26 +61,6 @@ header h1 { color: #00d4ff; }
 #botInfo p { margin: 5px 0; color: #b0b0d0; }
 #botInfo span { color: #ffffff; font-weight: bold; }
 
-/* RADAR */
-#radarContainer {
-  text-align: center;
-}
-#radarCanvas {
-  background: #0a0a1a;
-  border-radius: 50%;
-  border: 2px solid #2a4a5a;
-  width: 100%;
-  max-width: 400px;
-  height: auto;
-  aspect-ratio: 1/1;
-}
-#radarLegend {
-  font-size: 12px;
-  color: #888;
-  margin-top: 5px;
-}
-
-/* KONSOL */
 #logContainer {
   height: 250px;
   overflow-y: auto;
@@ -121,7 +101,6 @@ button, #sendCommand {
 }
 button:hover, #sendCommand:hover { background: #3a3a6e; }
 
-/* HIZLI KOMUT */
 #addQuickCommand {
   display: flex;
   gap: 10px;
@@ -170,7 +149,6 @@ button:hover, #sendCommand:hover { background: #3a3a6e; }
   font-size: 12px !important;
 }
 
-/* WAYPOINT */
 #waypointSection input, #waypointSection button { margin: 3px; }
 #waypointSection input {
   padding: 8px;
