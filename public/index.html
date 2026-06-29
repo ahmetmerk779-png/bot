@@ -1,26 +1,77 @@
-<!-- Ana dashboard içine ekle -->
-<div id="branchMineSection">
-  <h3>⛏️ Branch Mining (Elmas Arama)</h3>
-  
-  <div id="branchMineControls">
-    <h4>Yeni Branch Mining Başlat</h4>
-    <input type="number" id="branchLength" placeholder="Uzunluk (blok)" value="50" />
-    <input type="number" id="branchCount" placeholder="Dal Sayısı" value="5" />
-    <select id="branchDirection">
-      <option value="kuzey">Kuzey</option>
-      <option value="doğu">Doğu</option>
-      <option value="güney">Güney</option>
-      <option value="batı">Batı</option>
-    </select>
-    <button id="startBranchMineBtn">Başlat</button>
-    <button id="stopBranchMineBtn">Durdur</button>
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft AI Bot Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🤖 Minecraft AI Bot</h1>
+      <div id="status">🟢 Çevrimiçi</div>
+    </header>
+    
+    <main>
+      <div id="botInfo">
+        <h2>📊 Bot Durumu</h2>
+        <p>İsim: <span id="botName">-</span></p>
+        <p>Sunucu: <span id="serverInfo">-</span></p>
+        <p>Can: <span id="health">-</span></p>
+        <p>Açlık: <span id="food">-</span></p>
+        <p>Koordinat: <span id="coords">-</span></p>
+      </div>
+      
+      <div id="console">
+        <h2>📋 Konsol</h2>
+        <div id="logContainer"></div>
+        <div id="commandBox">
+          <input type="text" id="commandInput" placeholder="Doğal dil komut gönder...">
+          <button id="sendCommand">Gönder</button>
+        </div>
+      </div>
+      
+      <div id="quickCommands">
+        <h2>⚡ Hızlı Komutlar</h2>
+        <button class="quick-btn" data-command="explore">🔍 Keşfet</button>
+        <button class="quick-btn" data-command="explore durdur">⏹️ Keşfi Durdur</button>
+        <button class="quick-btn" data-command="branchMine 50 5 kuzey">⛏️ Elmas Ara</button>
+        <button class="quick-btn" data-command="branchMine durdur">⏹️ Kazmayı Durdur</button>
+        <button class="quick-btn" data-command="observe">👀 Gözlem Yap</button>
+        <button class="quick-btn" data-command="eat">🍖 Yemek Ye</button>
+      </div>
+      
+      <div id="waypointSection">
+        <h2>📍 Waypoint Yönetimi</h2>
+        <div>
+          <input type="text" id="wpName" placeholder="İsim">
+          <input type="number" id="wpX" placeholder="X" value="0">
+          <input type="number" id="wpY" placeholder="Y" value="64">
+          <input type="number" id="wpZ" placeholder="Z" value="0">
+          <button id="addWpBtn">Ekle</button>
+          <button id="saveCurrentBtn">Burayı Kaydet</button>
+        </div>
+        <div>
+          <input type="text" id="wpGoName" placeholder="Waypoint adı">
+          <button id="goWpBtn">Git</button>
+          <button id="listWpBtn">Listele</button>
+        </div>
+        <ul id="waypointList"></ul>
+      </div>
+      
+      <div id="discoveriesSection">
+        <h2>🗺️ Keşfedilen Yerler</h2>
+        <ul id="discoveriesList"></ul>
+      </div>
+    </main>
+    
+    <footer>
+      <p>Minecraft AI Bot v2.0 | Powered by Groq</p>
+    </footer>
   </div>
   
-  <div id="branchMineProgressContainer">
-    <h4>İlerleme</h4>
-    <div class="progress-bar-container">
-      <div id="branchMineProgress" class="progress-bar" style="width: 0%;">0%</div>
-    </div>
-    <p id="branchMineText">Dal: 0/0</p>
-  </div>
-</div>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/script.js"></script>
+</body>
+</html>
