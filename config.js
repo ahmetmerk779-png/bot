@@ -29,7 +29,7 @@ config.aiProvider = process.env.AI_PROVIDER || 'openrouter';
 
 // OpenRouter ayarları
 config.openRouterApiKey = process.env.OPENROUTER_API_KEY;
-config.openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free';
+config.openRouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-flash-1.5:free';
 
 // Groq ayarları (yedek)
 config.groqApiKey = process.env.GROQ_API_KEY;
