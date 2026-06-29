@@ -179,4 +179,17 @@ process.on('SIGINT', () => {
   console.log('Kapatılıyor...');
   if (bot) bot.end();
   process.exit(0);
+});// ============ SOCKET EVENT'LERİNİ DİNLE ============
+const { io } = require('./server');
+
+io.on('connection', (socket) => {
+  socket.on('restartBot', () => {
+    console.log('🔄 Bot yeniden başlatılıyor...');
+    if (bot) {
+      bot.end();
+      setTimeout(createBot, 2000);
+    } else {
+      createBot();
+    }
+  });
 });
