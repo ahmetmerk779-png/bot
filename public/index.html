@@ -1,31 +1,35 @@
-<!-- Ana dashboard içine ekle -->
-<div id="locationSection">
-  <h3>📍 Konum Paylaşma / TPA</h3>
+<!-- Ana dashboard içine ekle (waypoint bölümünün altına) -->
+<div id="coordsSection">
+  <h3>📍 Koordinat Paylaşma ve TPA</h3>
   
-  <div id="locationShare">
-    <h4>Konum Paylaş</h4>
-    <input type="text" id="shareLocationTarget" placeholder="Hedef oyuncu (opsiyonel)" />
-    <button id="shareLocationBtn">Konumumu Söyle</button>
-    <button id="whereBtn">Neredesin?</button>
+  <div id="coordsBasic">
+    <button id="sayCoordsBtn">🗣️ Koordinatları Söyle</button>
   </div>
   
-  <div id="tpaSection">
+  <div id="coordsMsg">
+    <h4>Koordinatları Oyuncuya Mesaj Gönder</h4>
+    <input type="text" id="coordsTarget" placeholder="Oyuncu adı" />
+    <button id="msgCoordsBtn">📨 Gönder</button>
+  </div>
+  
+  <div id="coordsTpa">
     <h4>TPA İşlemleri</h4>
     <input type="text" id="tpaTarget" placeholder="Oyuncu adı" />
-    <button id="tpaBtn">TPA At</button>
-    <button id="tpacceptBtn">TPA Kabul Et</button>
-    <button id="tpadenyBtn">TPA Reddet</button>
+    <button id="tpaBtn">📩 TPA At</button>
+    <button id="tpacceptBtn">✅ Kabul Et</button>
+    <button id="tpdenyBtn">❌ Reddet</button>
   </div>
   
-  <div id="callSection">
-    <h4>Oyuncu Çağır</h4>
-    <input type="text" id="callTarget" placeholder="Oyuncu adı" />
-    <button id="callBtn">Bana Gel (Çağır)</button>
+  <div id="coordsPlayers">
+    <h4>Oyuncu Bilgileri</h4>
+    <button id="listPlayersBtn">📋 Oyuncuları Listele</button>
+    <button id="nearestPlayerBtn">🎯 En Yakını Bul</button>
+    <ul id="onlinePlayersList"></ul>
   </div>
   
-  <div id="waypointShareSection">
-    <h4>Waypoint Konumu Paylaş</h4>
-    <input type="text" id="shareWaypointName" placeholder="Waypoint adı" />
-    <button id="shareWaypointBtn">Waypoint Konumunu Paylaş</button>
+  <div id="coordsFollow">
+    <h4>Oyuncuya Git/Takip Et</h4>
+    <input type="text" id="goToTarget" placeholder="Oyuncu adı" />
+    <button id="goToPlayerBtn">🚶 Git ve Takip Et</button>
   </div>
 </div>
