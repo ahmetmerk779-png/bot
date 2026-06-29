@@ -4,7 +4,8 @@ const combat = require('./combat');
 const craft = require('./craft');
 const useCraftingTable = require('./useCraftingTable');
 const observe = require('./observe');
-const explore = require('./explore');   // YENİ
+const explore = require('./explore');
+const waypoint = require('./waypoint');   // YENİ
 const plan = require('./plan');
 
 module.exports = {
@@ -14,6 +15,7 @@ module.exports = {
   craft,
   useCraftingTable,
   observe,
-  explore,    // YENİ
+  explore,
+  waypoint,    // YENİ
   plan
 };
