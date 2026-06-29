@@ -20,26 +20,102 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
   background: #1a1a2e;
-  border-radius: 10px;
-  margin-bottom: 20px;
+  padding: 12px 20px;
+  border-radius: 8px;
   border: 1px solid #2a2a4e;
+  margin-bottom: 20px;
 }
 
 header h1 {
   color: #00d4ff;
-  font-size: 24px;
+  font-size: 22px;
 }
 
 #status {
-  padding: 5px 15px;
-  border-radius: 20px;
-  background: #00ff8844;
-  color: #00ff88;
-  border: 1px solid #00ff88;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  background: #ffaa0044;
+  color: #ffaa00;
+  border: 1px solid #ffaa00;
 }
 
+#settingsBtn {
+  background: #2a2a4e;
+  border: none;
+  color: #e0e0e0;
+  padding: 6px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#settingsBtn:hover {
+  background: #3a3a6e;
+}
+
+/* Modal */
+#settingsModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 999;
+}
+
+.modal-content {
+  background: #1a1a2e;
+  padding: 30px;
+  border-radius: 10px;
+  border: 1px solid #2a2a4e;
+  width: 400px;
+  max-width: 90%;
+}
+
+.modal-content h2 {
+  color: #00d4ff;
+  margin-bottom: 15px;
+}
+
+.modal-content label {
+  display: block;
+  margin: 8px 0 4px;
+  font-size: 13px;
+  color: #aaa;
+}
+
+.modal-content input, .modal-content select {
+  width: 100%;
+  padding: 8px;
+  background: #0d0d1a;
+  border: 1px solid #2a2a4e;
+  border-radius: 4px;
+  color: #e0e0e0;
+  margin-bottom: 8px;
+}
+
+.modal-content button {
+  padding: 8px 16px;
+  margin-right: 8px;
+  background: #2a2a4e;
+  border: none;
+  border-radius: 4px;
+  color: #e0e0e0;
+  cursor: pointer;
+}
+
+.modal-content button#saveSettings {
+  background: #00d4ff;
+  color: #000;
+  font-weight: bold;
+}
+
+/* Ana Grid */
 main {
   display: grid;
   grid-template-columns: 1fr 2fr;
@@ -52,63 +128,62 @@ main {
   }
 }
 
-#botInfo, #console, #quickCommands, #waypointSection, #discoveriesSection {
+section {
   background: #1a1a2e;
   padding: 15px;
-  border-radius: 10px;
+  border-radius: 8px;
   border: 1px solid #2a2a4e;
 }
 
-#botInfo p {
+#botStatus p {
   margin: 5px 0;
   color: #b0b0d0;
 }
 
-#botInfo span {
-  color: #ffffff;
+#botStatus span {
+  color: #fff;
   font-weight: bold;
 }
 
 #logContainer {
-  height: 300px;
+  height: 250px;
   overflow-y: auto;
   background: #0d0d1a;
-  border-radius: 5px;
-  padding: 10px;
-  font-family: 'Consolas', monospace;
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
   font-size: 13px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
-#logContainer .log-entry {
+.log-entry {
   padding: 2px 0;
   border-bottom: 1px solid #1a1a2e;
 }
 
-#logContainer .log-entry .time {
+.log-entry .time {
   color: #666;
-  margin-right: 10px;
+  margin-right: 8px;
 }
 
-#logContainer .log-entry .type-sistem { color: #00d4ff; }
-#logContainer .log-entry .type-komut { color: #ffaa00; }
-#logContainer .log-entry .type-ai { color: #aa66ff; }
-#logContainer .log-entry .type-hata { color: #ff4444; }
-#logContainer .log-entry .type-bot { color: #44ff88; }
+.type-sistem { color: #00d4ff; }
+.type-komut { color: #ffaa00; }
+.type-ai { color: #aa66ff; }
+.type-hata { color: #ff4444; }
+.type-bot { color: #44ff88; }
 
 #commandBox {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 #commandInput {
   flex: 1;
-  padding: 10px;
+  padding: 8px;
   background: #0d0d1a;
   border: 1px solid #2a2a4e;
-  border-radius: 5px;
+  border-radius: 4px;
   color: #e0e0e0;
-  font-size: 14px;
 }
 
 #commandInput:focus {
@@ -116,70 +191,59 @@ main {
   border-color: #00d4ff;
 }
 
-#sendCommand, button {
-  padding: 10px 20px;
+button {
+  padding: 8px 16px;
   background: #2a2a4e;
   border: none;
-  border-radius: 5px;
+  border-radius: 4px;
   color: #e0e0e0;
   cursor: pointer;
-  transition: background 0.3s;
 }
 
-#sendCommand:hover, button:hover {
+button:hover {
   background: #3a3a6e;
 }
 
 #quickCommands {
   grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
-.quick-btn {
-  margin: 5px;
-  padding: 8px 15px;
+.qbtn {
+  padding: 6px 12px;
   background: #2a2a4e;
   border: 1px solid #3a3a6e;
-  border-radius: 5px;
-  color: #e0e0e0;
-  cursor: pointer;
-  transition: all 0.3s;
+  border-radius: 4px;
+  font-size: 13px;
 }
 
-.quick-btn:hover {
-  background: #3a3a6e;
-  transform: scale(1.05);
+#listSection {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
 }
 
-#waypointSection input, #waypointSection button {
-  margin: 3px;
-}
-
-#waypointSection input {
-  padding: 8px;
-  background: #0d0d1a;
-  border: 1px solid #2a2a4e;
-  border-radius: 5px;
-  color: #e0e0e0;
-  width: 100px;
-}
-
-#waypointList, #discoveriesList {
+#listSection ul {
   list-style: none;
   padding: 0;
-  margin-top: 10px;
+  margin-top: 8px;
 }
 
-#waypointList li, #discoveriesList li {
-  padding: 5px 10px;
+#listSection li {
   background: #0d0d1a;
-  border-radius: 4px;
-  margin: 3px 0;
+  padding: 4px 8px;
+  margin: 2px 0;
+  border-radius: 3px;
   border-left: 3px solid #00d4ff;
+  font-size: 13px;
 }
 
 footer {
   margin-top: 20px;
   text-align: center;
-  color: #666;
-  padding: 10px;
+  color: #555;
+  font-size: 12px;
 }
