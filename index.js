@@ -1,88 +1,86 @@
 const mineflayer = require('mineflayer');
-const { pathfinder } = require('mineflayer-pathfinder');
 const express = require('express');
 const app = express();
+const http = require('http').createServer(app);
+
+// Logları tutmak için
+let logHistory = [];
+const originalLog = console.log;
+console.log = (...args) => {
+    const msg = args.join(' ');
+    logHistory.push(msg);
+    if(logHistory.length > 50) logHistory.shift();
+    originalLog(...args);
+};
 
 app.use(express.urlencoded({ extended: true }));
 
 let bot = null;
-let botConfig = { name: 'Bot', host: 'aesirmc.com', port: 25565, pass: '' };
-let status = "Beklemede...";
+let currentTask = "Boşta";
 
-// --- BOT İŞLEMLERİ ---
-function startBot() {
-    status = "Bağlanılıyor...";
+// --- BOT LOGİĞİ ---
+function createBot() {
+    console.log("Bot oluşturuluyor...");
     bot = mineflayer.createBot({
-        host: botConfig.host,
-        port: parseInt(botConfig.port),
-        username: botConfig.name,
+        host: 'aesirmc.com',
+        port: 25565,
+        username: 'Bot',
         version: '1.21.1'
     });
 
-    bot.loadPlugin(pathfinder);
-
-    bot.on('login', () => {
-        status = "🟢 ONLINE";
-        if (botConfig.pass) {
-            setTimeout(() => bot.chat('/login ' + botConfig.pass), 2000);
-        }
-    });
-
-    bot.on('end', () => {
-        status = "🔴 DÜŞTÜ - 10sn sonra bağlanılıyor...";
-        setTimeout(startBot, 10000);
-    });
-
-    bot.on('chat', (username, message) => {
-        if (username === bot.username) return;
-        
-        // !npc komutu (Chat üzerinden)
-        if (message.startsWith('!npc ')) {
-            const npcName = message.split('!npc ')[1];
-            const npc = Object.values(bot.entities).find(e => 
-                e.type === 'player' && e.username.toLowerCase().includes(npcName.toLowerCase())
-            );
-            if (npc) {
-                bot.lookAt(npc.position.offset(0, npc.height / 2, 0));
-                bot.activateEntity(npc);
-                bot.chat(`${npc.username} NPC'sine tıklandı.`);
-            } else {
-                bot.chat("NPC bulunamadı.");
-            }
-        }
-    });
+    bot.on('login', () => console.log(">>> SUNUCUYA GİRİLDİ!"));
+    bot.on('end', () => { console.log(">>> BOT DÜŞTÜ, 10sn sonra yeniden..."); setTimeout(createBot, 10000); });
+    bot.on('chat', (u, m) => console.log(`${u}: ${m}`));
 }
 
-// --- WEB PANELİ (KONSOL) ---
+// --- WEB ARAYÜZÜ (KONSOL) ---
 app.get('/', (req, res) => {
     res.send(`
-        <h3>Bot Kontrol Merkezi</h3>
-        <p>Durum: <b>${status}</b></p>
-        <form action="/start" method="POST">
-            <input name="name" value="${botConfig.name}" placeholder="Bot İsmi">
-            <input name="pass" placeholder="Şifre">
-            <button type="submit">Botu Başlat</button>
-        </form>
-        <hr>
-        <form action="/run" method="POST">
-            <input name="cmd" placeholder="Komut (örn: /warp)" required>
-            <button type="submit">Komut Gönder</button>
-        </form>
-        <p>Chatten komut: <b>!npc [isim]</b></p>
+        <html>
+        <body style="background:#1a1a1a; color:#0f0; font-family:monospace; padding:20px;">
+            <h3>🤖 BOT KONTROL MERKEZİ</h3>
+            <p>GÖREV: <b>${currentTask}</b></p>
+            
+            <form action="/command" method="POST">
+                <input name="cmd" placeholder="Komut yaz..." style="width:300px">
+                <button type="submit">Gönder</button>
+            </form>
+            <br>
+            <form action="/task" method="POST">
+                <button name="task" value="Maden">Maden Kaz</button>
+                <button name="task" value="Farm">Farm Yap</button>
+                <button name="task" value="Dur">DUR</button>
+            </form>
+            <br>
+            <textarea id="console" style="width:100%; height:300px; background:black; color:#0f0; border:1px solid #333;" readonly></textarea>
+            
+            <script>
+                async function updateLogs() {
+                    const res = await fetch('/logs');
+                    const text = await res.text();
+                    document.getElementById('console').value = text;
+                }
+                setInterval(updateLogs, 1000); // 1 saniyede bir logları güncelle
+            </script>
+        </body>
+        </html>
     `);
 });
 
-app.post('/start', (req, res) => {
-    botConfig.name = req.body.name;
-    botConfig.pass = req.body.pass;
-    if (bot) bot.quit();
-    startBot();
+app.get('/logs', (req, res) => res.send(logHistory.join('\n')));
+
+app.post('/command', (req, res) => {
+    if(bot) bot.chat(req.body.cmd);
     res.redirect('/');
 });
 
-app.post('/run', (req, res) => {
-    if (bot) bot.chat(req.body.cmd);
+app.post('/task', (req, res) => {
+    currentTask = req.body.task;
+    console.log("GÖREV DEĞİŞTİ: " + currentTask);
     res.redirect('/');
 });
 
-app.listen(process.env.PORT || 3000, () => console.log("Web Paneli Aktif!"));
+app.listen(process.env.PORT || 3000, () => {
+    console.log("Panel Başlatıldı.");
+    createBot();
+});
