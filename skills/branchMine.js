@@ -6,6 +6,7 @@ let totalBranches = 0;
 let branchLength = 0;
 let startCoords = null;
 let currentDirection = 0;
+let branchInterval = null;
 
 async function execute(bot, params) {
   if (params[0] === 'durdur' || params[0] === 'stop') {
@@ -33,7 +34,9 @@ async function execute(bot, params) {
   currentBranch = 0;
   branchMining = true;
 
-  bot.chat(`⛏️ Branch mining başlatılıyor: ${totalBranches} dal, ${branchLength} blok, yön: ${direction}`);
+  if (bot._client?.state === 'connected') {
+    bot.chat(`⛏️ Branch mining başlatılıyor: ${totalBranches} dal, ${branchLength} blok, yön: ${direction}`);
+  }
   branchLoop(bot);
   return `Branch mining başlatıldı.`;
 }
@@ -45,7 +48,7 @@ async function branchLoop(bot) {
       const branchStartZ = startCoords.z;
 
       await bot.pathfinder.goto({ x: branchStartX, y: startCoords.y, z: branchStartZ });
-      bot.chat(`📏 ${currentBranch + 1}. dal başlıyor...`);
+      if (bot._client?.state === 'connected') bot.chat(`📏 ${currentBranch + 1}. dal başlıyor...`);
 
       for (let i = 0; i < branchLength && branchMining; i++) {
         let targetX = branchStartX, targetZ = branchStartZ;
@@ -65,7 +68,7 @@ async function branchLoop(bot) {
         await sleep(200);
       }
 
-      bot.chat(`✅ ${currentBranch + 1}. dal tamamlandı!`);
+      if (bot._client?.state === 'connected') bot.chat(`✅ ${currentBranch + 1}. dal tamamlandı!`);
       currentBranch++;
       await sleep(2000);
 
@@ -79,7 +82,7 @@ async function branchLoop(bot) {
   }
 
   if (branchMining && currentBranch >= totalBranches) {
-    bot.chat('🎉 Tüm branch mining tamamlandı!');
+    if (bot._client?.state === 'connected') bot.chat('🎉 Tüm branch mining tamamlandı!');
     stopBranchMining(bot);
   }
 }
@@ -90,7 +93,7 @@ async function mineValuableBlocks(bot) {
     const block = bot.findBlock({ matching: b => b.name === blockType, maxDistance: 3 });
     if (block) {
       try {
-        bot.chat(`💎 ${blockType} bulundu!`);
+        if (bot._client?.state === 'connected') bot.chat(`💎 ${blockType} bulundu!`);
         await bot.dig(block);
         await sleep(500);
       } catch (err) {
@@ -100,9 +103,17 @@ async function mineValuableBlocks(bot) {
   }
 }
 
+// ============ GÜVENLİ DURDURMA ============
 function stopBranchMining(bot) {
   branchMining = false;
-  bot.chat('⛔ Branch mining durduruldu.');
+  if (branchInterval) {
+    clearInterval(branchInterval);
+    branchInterval = null;
+  }
+  if (bot && bot._client && bot._client.state === 'connected') {
+    bot.chat('⛔ Branch mining durduruldu.');
+  }
+  currentBranch = 0;
 }
 
 function isBranchMining() { return branchMining; }
