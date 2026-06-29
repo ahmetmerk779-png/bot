@@ -1,11 +1,11 @@
-// index.js - Tüm sorunlar çözüldü, radar kaldırıldı
+// index.js - Mistral AI ile çalışan bot
 require('dotenv').config();
 const mineflayer = require('mineflayer');
 const config = require('./config');
 const { loadMemory, addEvent, addKnowledge } = require('./memory/memoryManager');
 const { buildSystemPrompt, buildUserPrompt } = require('./ai/prompt');
 const { askGroq } = require('./ai/groq');
-const { askOpenRouter } = require('./ai/openrouter');
+const { askMistral } = require('./ai/mistral'); // YENİ
 const skills = require('./skills');
 const { sleep } = require('./utils/helpers');
 const { isExploring, stopExploring } = require('./skills/explore');
@@ -19,10 +19,10 @@ let isConnected = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
-// ============ AI SORGU ============
+// ============ AI SORGU FONKSİYONU ============
 async function askAI(systemPrompt, userPrompt) {
-  if (config.aiProvider === 'openrouter') {
-    return await askOpenRouter(systemPrompt, userPrompt);
+  if (config.aiProvider === 'mistral') {
+    return await askMistral(systemPrompt, userPrompt);
   } else {
     return await askGroq(systemPrompt, userPrompt);
   }
@@ -46,15 +46,6 @@ function createBot() {
     isConnected = true;
     reconnectAttempts = 0;
     addEvent(memory, 'Bot oyuna giriş yaptı.');
-    
-    // === KONUŞMA TESTİ ===
-    setTimeout(() => {
-      if (bot._client?.state === 'connected') {
-        bot.chat('Merhaba! Ben yapay zeka botuyum.');
-        io.emit('log', { type: 'bot', message: '💬 Merhaba! Ben yapay zeka botuyum.' });
-      }
-    }, 2000);
-    
     io.emit('botStatus', {
       botName: config.botName,
       server: `${config.serverHost}:${config.serverPort}`,
@@ -68,12 +59,11 @@ function createBot() {
   bot.once('spawn', () => {
     console.log('Bot spawn oldu.');
     addEvent(memory, 'Bot spawn oldu.');
-    io.emit('log', { type: 'sistem', message: '✅ Bot spawn oldu.' });
-    
+    io.emit('log', { type: 'sistem', message: '✅ Bot hazır!' });
+    // Bot sohbete mesaj atsın
     setTimeout(() => {
       if (bot._client?.state === 'connected') {
-        bot.chat('Hazırım! Ne yapmamı istersin?');
-        io.emit('log', { type: 'bot', message: '💬 Hazırım! Ne yapmamı istersin?' });
+        bot.chat('Merhaba! Ben yapay zeka botuyum.');
       }
     }, 3000);
   });
@@ -110,41 +100,19 @@ function createBot() {
     }
   });
 
-  // === SOHBET DİNLEYİCİLERİ (ÇALIŞIYOR) ===
   bot.on('whisper', (username, message) => {
-    console.log(`[ÖZEL] ${username}: ${message}`);
-    io.emit('log', { type: 'sistem', message: `💬 ${username} (özel): ${message}` });
-    
-    // TPA komutları
-    if (message.toLowerCase().includes('tpa') || message.toLowerCase().includes('tpa at')) {
+    io.emit('log', { type: 'sistem', message: `💬 ${username}: ${message}` });
+    if (message.toLowerCase().includes('tpa')) {
       if (bot._client?.state === 'connected') {
         bot.chat(`/tpa ${username}`);
         bot.whisper(username, 'TPA gönderildi.');
-        io.emit('log', { type: 'bot', message: `📨 ${username}'a TPA gönderildi.` });
       }
-    }
-    
-    // Takip et
-    if (message.toLowerCase().includes('takip et') || message.toLowerCase().includes('follow')) {
-      skills.follow.execute(bot, [username]);
-    }
-    
-    // Merhaba cevabı
-    if (message.toLowerCase().includes('merhaba') || message.toLowerCase().includes('selam')) {
-      bot.whisper(username, 'Merhaba! Nasılsın?');
-      io.emit('log', { type: 'bot', message: `💬 ${username}'a: Merhaba! Nasılsın?` });
     }
   });
 
   bot.on('chat', (username, message) => {
     if (username === bot.username) return;
-    console.log(`[SOHBET] ${username}: ${message}`);
     io.emit('log', { type: 'sistem', message: `💬 ${username}: ${message}` });
-    
-    // Genel sohbetten takip komutu
-    if (message.toLowerCase().includes('takip et') && message.toLowerCase().includes(bot.username)) {
-      skills.follow.execute(bot, [username]);
-    }
   });
 
   bot.on('health', () => {
@@ -154,20 +122,16 @@ function createBot() {
   });
 }
 
-// ============ WEB'DEN KOMUT DİNLE ============
+// ============ WEB'DEN KOMUT AL ============
 io.on('botCommand', async (data) => {
   const command = data.command;
   console.log(`📥 Web'den komut: ${command}`);
-  io.emit('log', { type: 'komut', message: `📨 ${command}` });
-  
   const parts = command.trim().split(' ');
   const action = parts[0];
   const params = parts.slice(1);
-  
   if (skills[action]) {
     try {
       const result = await skills[action].execute(bot, params);
-      console.log('✅ Sonuç:', result);
       io.emit('log', { type: 'bot', message: `✅ ${result}` });
       if (bot._client?.state === 'connected') {
         bot.chat(`✅ ${result}`);
@@ -194,7 +158,7 @@ async function loop() {
       if (isBranchMining()) {
         const progress = getProgress();
         if (progress) {
-          io.emit('log', { type: 'sistem', message: `⛏️ Branch Mining: %${progress.progress} (${progress.currentBranch}/${progress.totalBranches})` });
+          io.emit('log', { type: 'sistem', message: `⛏️ Branch Mining: %${progress.progress}` });
         }
         await sleep(1000);
         continue;
@@ -207,11 +171,10 @@ async function loop() {
 
       const systemPrompt = buildSystemPrompt();
       const userPrompt = buildUserPrompt(observation, memory);
-      const rawResponse = await askAI(systemPrompt, userPrompt);
-      console.log('🧠 AI Cevabı:', rawResponse);
+      const rawResponse = await askAI(systemPrompt, userPrompt); // Mistral veya Groq
+      console.log('🧠 AI:', rawResponse);
 
       if (!rawResponse) {
-        io.emit('log', { type: 'ai', message: '⚠️ AI cevap vermedi, bekleniyor...' });
         await sleep(5000);
         continue;
       }
@@ -228,7 +191,7 @@ async function loop() {
           action = parsed.action;
           params = parsed.params || [];
         } else {
-          io.emit('log', { type: 'ai', message: `⚠️ AI geçersiz cevap: ${rawResponse.substring(0, 50)}...` });
+          io.emit('log', { type: 'ai', message: `⚠️ AI geçersiz cevap verdi` });
           await sleep(3000);
           continue;
         }
@@ -247,15 +210,12 @@ async function loop() {
         }
       } else {
         io.emit('log', { type: 'hata', message: `❌ Bilinmeyen yetenek: ${action}` });
-        if (bot._client?.state === 'connected') {
-          bot.chat(`❌ Bilinmeyen komut: ${action}`);
-        }
       }
 
       await sleep(3000);
     } catch (err) {
       console.error('Döngü hatası:', err.message);
-      io.emit('log', { type: 'hata', message: `❌ Döngü hatası: ${err.message}` });
+      io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       await sleep(5000);
     }
   }
@@ -264,6 +224,7 @@ async function loop() {
 // ============ BOT'U BAŞLAT ============
 createBot();
 
+// Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Kapatılıyor...');
   if (bot) bot.end();
