@@ -36,9 +36,87 @@ commandInput.addEventListener('keypress', (e) => {
 });
 sendBtn.addEventListener('click', () => sendCommand(commandInput.value));
 
-// Hızlı komut butonları
-document.querySelectorAll('.quick-btn').forEach(btn => {
-  btn.addEventListener('click', () => sendCommand(btn.dataset.command));
+// ============ HIZLI KOMUT YÖNETİMİ ============
+let quickCommands = [];
+
+function loadQuickCommands() {
+  try {
+    const stored = localStorage.getItem('quickCommands');
+    if (stored) {
+      quickCommands = JSON.parse(stored);
+    } else {
+      quickCommands = [
+        { label: '🔍 Keşfet', command: 'explore' },
+        { label: '⏹️ Durdur', command: 'explore durdur' },
+        { label: '⛏️ Elmas Ara', command: 'branchMine 50 5 kuzey' },
+        { label: '⏹️ Kazmayı Durdur', command: 'branchMine durdur' },
+        { label: '👀 Gözlem', command: 'observe' },
+        { label: '🍖 Yemek Ye', command: 'eat' }
+      ];
+      saveQuickCommands();
+    }
+  } catch (err) {
+    console.error('Quick commands yüklenemedi:', err);
+  }
+  renderQuickCommands();
+}
+
+function saveQuickCommands() {
+  localStorage.setItem('quickCommands', JSON.stringify(quickCommands));
+}
+
+function renderQuickCommands() {
+  const container = document.getElementById('quickCommandsList');
+  if (!container) return;
+  container.innerHTML = '';
+  quickCommands.forEach((item, index) => {
+    const wrapper = document.createElement('span');
+    wrapper.style.display = 'inline-block';
+    wrapper.style.margin = '5px';
+
+    const btn = document.createElement('button');
+    btn.className = 'quick-btn';
+    btn.textContent = item.label;
+    btn.dataset.command = item.command;
+    btn.addEventListener('click', () => sendCommand(item.command));
+    wrapper.appendChild(btn);
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.className = 'delete-quick-btn';
+    delBtn.style.marginLeft = '5px';
+    delBtn.style.background = '#ff4444';
+    delBtn.style.color = '#fff';
+    delBtn.style.border = 'none';
+    delBtn.style.borderRadius = '50%';
+    delBtn.style.width = '20px';
+    delBtn.style.height = '20px';
+    delBtn.style.cursor = 'pointer';
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      quickCommands.splice(index, 1);
+      saveQuickCommands();
+      renderQuickCommands();
+      addLog('sistem', `🗑️ "${item.label}" silindi.`);
+    });
+    wrapper.appendChild(delBtn);
+    container.appendChild(wrapper);
+  });
+}
+
+document.getElementById('addQuickBtn')?.addEventListener('click', () => {
+  const label = document.getElementById('newQuickLabel').value.trim();
+  const command = document.getElementById('newQuickCommand').value.trim();
+  if (!label || !command) {
+    addLog('hata', '❌ Buton adı ve komut girmelisiniz.');
+    return;
+  }
+  quickCommands.push({ label, command });
+  saveQuickCommands();
+  renderQuickCommands();
+  document.getElementById('newQuickLabel').value = '';
+  document.getElementById('newQuickCommand').value = '';
+  addLog('sistem', `✅ "${label}" komutu eklendi.`);
 });
 
 // ============ WAYPOINT ============
@@ -62,8 +140,8 @@ document.getElementById('listWpBtn')?.addEventListener('click', () => {
   sendCommand('waypoint list');
 });
 
-// ============ AYARLARI KAYDET ============
-document.getElementById('settingsForm')?.addEventListener('submit', (e) => {
+// ============ AYARLARI KAYDET (BAĞLANMA HATASI ÇÖZÜMÜ) ============
+document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = {
     botName: document.getElementById('setBotName').value,
@@ -73,18 +151,38 @@ document.getElementById('settingsForm')?.addEventListener('submit', (e) => {
     auth: document.getElementById('setAuth').value,
     renderDistance: parseInt(document.getElementById('setRenderDistance').value)
   };
-  fetch('/api/config', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  })
-  .then(res => res.json())
-  .then(() => {
-    addLog('sistem', '✅ Ayarlar kaydedildi, bot yeniden başlatılıyor...');
+
+  try {
+    const response = await fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    addLog('sistem', `✅ ${result.message}`);
     setTimeout(() => location.reload(), 3000);
-  })
-  .catch(err => addLog('hata', `❌ ${err.message}`));
+  } catch (err) {
+    addLog('hata', `❌ Ayarlar kaydedilemedi: ${err.message}`);
+  }
 });
+
+// ============ MEVCUT AYARLARI YÜKLE ============
+async function loadConfig() {
+  try {
+    const response = await fetch('/api/config');
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const config = await response.json();
+    document.getElementById('setBotName').value = config.botName || '';
+    document.getElementById('setServerHost').value = config.serverHost || '';
+    document.getElementById('setServerPort').value = config.serverPort || 25565;
+    document.getElementById('setVersion').value = config.version || '1.8.9';
+    document.getElementById('setAuth').value = config.auth || 'offline';
+    document.getElementById('setRenderDistance').value = config.renderDistance || 10;
+  } catch (err) {
+    addLog('hata', `❌ Ayarlar yüklenemedi: ${err.message}`);
+  }
+}
 
 // ============ SOCKET OLAYLARI ============
 socket.on('log', (data) => {
@@ -111,6 +209,10 @@ socket.on('discoveriesUpdate', (data) => {
   list.innerHTML = data.map(d => `<li>${d.name} - ${d.coords.join(', ')}</li>`).join('');
 });
 
-// Başlangıç
-addLog('sistem', '🚀 Dashboard bağlantı kuruldu.');
-addLog('sistem', '💡 Doğal dilde komut gönderebilirsiniz.');
+// ============ SAYFA YÜKLENİNCE ============
+document.addEventListener('DOMContentLoaded', () => {
+  loadQuickCommands();
+  loadConfig();
+  addLog('sistem', '🚀 Dashboard bağlantı kuruldu.');
+  addLog('sistem', '💡 Doğal dilde komut gönderebilirsiniz.');
+});
