@@ -29,27 +29,31 @@ YETENEKLERİN:
 - waypoint list : Tüm waypoint'leri listele.
 - waypoint delete <isim> : Waypoint sil.
 - waypoint clear : Tüm waypoint'leri temizle.
-- waypoint <isim> : Mevcut konumu waypoint olarak kaydeder (kısayol).
-
-- shareLocation konum [oyuncu] : Konumunu söyle.
-- shareLocation nerede [oyuncu] : Konumunu söyle (alternatif).
-- shareLocation tpa <oyuncu> : Oyuncuya tpa at.
-- shareLocation tpaccept : TPA kabul et.
-- shareLocation tpadeny : TPA reddet.
-- shareLocation çağır <oyuncu> : Oyuncuyu çağır (tpa at + konum söyle).
-- shareLocation waypoint <isim> : Waypoint konumunu paylaş.
+- waypoint <isim> : Mevcut konumu waypoint olarak kaydeder.
+- coords söyle : Kendi koordinatlarını söyle.
+- coords mesaj <oyuncu> : Oyuncuya özel mesajla koordinatları gönder.
+- coords tpa <oyuncu> : Oyuncuya TPA isteği gönder.
+- coords tpaccept : Gelen TPA isteğini kabul et.
+- coords tpdeny : Gelen TPA isteğini reddet.
+- coords oyuncular : Çevrimiçi oyuncuları listele.
+- coords en yakın : En yakın oyuncuyu bul ve koordinatlarını söyle.
+- coords gel <oyuncu> : Oyuncuya TPA at ve takip et.
 
 KURALLAR:
 - Kullanıcı doğal dilde komut verecek, sen JSON formatında cevap ver.
 - JSON formatı: { "action": "komutAdi", "params": ["param1", "param2"] }
-- Kullanıcı "neredesin?", "konumunu söyle", "bana gel" gibi doğal dilde konuşursa, bunu shareLocation komutuna çevir.
-- Örnek: "neredesin?" → { "action": "shareLocation", "params": ["nerede"] }
-- Örnek: "bana gel" → { "action": "shareLocation", "params": ["çağır", "kullanıcı_adı"] } (kullanıcı adını bilmiyorsan, en yakın oyuncuyu çağır).
-- Örnek: "tpa at" → { "action": "shareLocation", "params": ["tpa", "oyuncu_adı"] }
+- Kullanıcı "konumumu söyle", "koordinatlarımı söyle" dediğinde → { "action": "coords", "params": ["söyle"] }
+- Kullanıcı "OyuncuX'e koordinatlarımı söyle" dediğinde → { "action": "coords", "params": ["mesaj", "OyuncuX"] }
+- Kullanıcı "OyuncuX'e tpa at" dediğinde → { "action": "coords", "params": ["tpa", "OyuncuX"] }
+- Kullanıcı "gelen isteği kabul et" dediğinde → { "action": "coords", "params": ["tpaccept"] }
+- Kullanıcı "çevrimiçi oyuncular" dediğinde → { "action": "coords", "params": ["oyuncular"] }
+- Kullanıcı "en yakın oyuncu kim" dediğinde → { "action": "coords", "params": ["en yakın"] }
+- Kullanıcı "OyuncuX'e git" veya "OyuncuX'i takip et" dediğinde → { "action": "coords", "params": ["gel", "OyuncuX"] }
 - Her seferinde sadece bir JSON cevap ver.
 `;
 }
 
+// buildUserPrompt aynı kalıyor (önceki sürümdeki gibi)
 function buildUserPrompt(observation, memory) {
   const sonOlaylar = memory.events.slice(-5).map(e => e.text).join('\n');
   const discoveries = getDiscoveries();
@@ -70,7 +74,7 @@ ${keşifler}
 KAYITLI WAYPOINT'LER:
 ${waypointList}
 
-Hedefin: Çevreyi keşfet, kaynak topla, canlılarla savaş, eşya üret, waypoint yönet, konum paylaş ve planlı hareket et.
+Hedefin: Çevreyi keşfet, kaynak topla, canlılarla savaş, eşya üret, waypoint yönet, koordinat paylaş ve planlı hareket et.
 Ne yapmak istersin? JSON cevap ver.
 `;
 }
