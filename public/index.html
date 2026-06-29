@@ -1,39 +1,26 @@
 <!-- Ana dashboard içine ekle -->
-<div id="coordsSection">
-  <h3>📍 Koordinat Paylaşım ve TPA</h3>
+<div id="branchMineSection">
+  <h3>⛏️ Branch Mining (Elmas Arama)</h3>
   
-  <div id="coordsShare">
-    <h4>Koordinat Paylaş</h4>
-    <input type="text" id="shareTarget" placeholder="Oyuncu adı (opsiyonel)" />
-    <button id="shareCoordsBtn">Koordinatları Paylaş</button>
-    <button id="whereBtn">Konumumu Söyle</button>
+  <div id="branchMineControls">
+    <h4>Yeni Branch Mining Başlat</h4>
+    <input type="number" id="branchLength" placeholder="Uzunluk (blok)" value="50" />
+    <input type="number" id="branchCount" placeholder="Dal Sayısı" value="5" />
+    <select id="branchDirection">
+      <option value="kuzey">Kuzey</option>
+      <option value="doğu">Doğu</option>
+      <option value="güney">Güney</option>
+      <option value="batı">Batı</option>
+    </select>
+    <button id="startBranchMineBtn">Başlat</button>
+    <button id="stopBranchMineBtn">Durdur</button>
   </div>
   
-  <div id="tpaSection">
-    <h4>TPA (Işınlanma)</h4>
-    <input type="text" id="tpaTarget" placeholder="Oyuncu adı" />
-    <button id="tpaBtn">TPA At</button>
-    <button id="tpacceptBtn">Kabul Et</button>
-    <button id="tpdenyBtn">Reddet</button>
+  <div id="branchMineProgressContainer">
+    <h4>İlerleme</h4>
+    <div class="progress-bar-container">
+      <div id="branchMineProgress" class="progress-bar" style="width: 0%;">0%</div>
+    </div>
+    <p id="branchMineText">Dal: 0/0</p>
   </div>
-  
-  <div id="nearbySection">
-    <h4>Yakındaki Oyuncular</h4>
-    <input type="number" id="nearbyRadius" placeholder="Yarıçap" value="50" />
-    <button id="nearbyBtn">Ara</button>
-  </div>
-  
-  <div id="coordsLogSection">
-    <h4>Koordinat Kaydet</h4>
-    <input type="text" id="logNote" placeholder="Not (opsiyonel)" />
-    <button id="logCoordsBtn">Kaydet</button>
-    <button id="listLogsBtn">Kayıtları Listele</button>
-    <ul id="coordsLogsList"></ul>
-  </div>
-  
-  <div id="gpsSection">
-    <h4>GPS Navigasyon</h4>
-    <input type="text" id="gpsTarget" placeholder="Waypoint adı veya koordinat (örn: ev veya 100 64 200)" />
-    <button id="gpsBtn">Sorgula</button>
-  </div>
-      </div>
+</div>
