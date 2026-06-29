@@ -1,4 +1,4 @@
-// config.js - Mistral desteği eklendi
+require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
 
@@ -24,30 +24,20 @@ try {
 }
 
 // ============ AI SAĞLAYICI SEÇİMİ ============
-config.aiProvider = process.env.AI_PROVIDER || 'mistral';
+config.aiProvider = process.env.AI_PROVIDER || 'mistral'; // 'groq' veya 'mistral'
 
-// Mistral ayarları
+// Mistral ayarları (YENİ)
 config.mistralApiKey = process.env.MISTRAL_API_KEY;
 config.mistralModel = process.env.MISTRAL_MODEL || 'mistral-small-latest';
+config.mistralUrl = 'https://api.mistral.ai/v1/chat/completions';
 
-// OpenRouter (yedek)
-config.openRouterApiKey = process.env.OPENROUTER_API_KEY;
-config.openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free';
-
-// Groq (yedek)
+// Groq ayarları (yedek)
 config.groqApiKey = process.env.GROQ_API_KEY;
 config.groqModel = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
 config.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
 // Diğer ayarlar
-config.proxy = {
-  enabled: false,
-  type: 'socks5',
-  host: '',
-  port: 1080,
-  username: '',
-  password: ''
-};
+config.proxy = { enabled: false, type: 'socks5', host: '', port: 1080, username: '', password: '' };
 config.antiAFK = { enabled: true, interval: 45, action: 'jump' };
 config.memoryFile = './memory/memory.json';
 config.maxMemoryEntries = 100;
