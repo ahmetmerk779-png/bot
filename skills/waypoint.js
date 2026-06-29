@@ -3,19 +3,37 @@ const { addWaypoint, getWaypoint, getWaypoints, deleteWaypoint, clearWaypoints }
 async function execute(bot, params) {
   const action = params[0]?.toLowerCase();
   const name = params[1];
-  const coords = params.slice(2).map(Number);
+  const coordsParam = params.slice(2).map(Number);
 
+  // Hiç parametre yoksa mevcut konumu "hedef" olarak kaydet
+  if (!action) {
+    const coords = [
+      Math.round(bot.entity.position.x),
+      Math.round(bot.entity.position.y),
+      Math.round(bot.entity.position.z)
+    ];
+    addWaypoint('hedef', coords);
+    bot.chat(`📍 hedef waypoint'i kaydedildi. Koordinat: ${coords.join(', ')}`);
+    return 'hedef waypoint\'i kaydedildi.';
+  }
+
+  // Waypoint ekleme
   if (action === 'add' || action === 'kaydet' || action === 'ekle') {
     if (!name) return 'Waypoint adı belirtilmedi.';
-    let finalCoords = coords;
-    if (coords.length < 3 || coords.some(isNaN)) {
-      finalCoords = [Math.round(bot.entity.position.x), Math.round(bot.entity.position.y), Math.round(bot.entity.position.z)];
+    let finalCoords = coordsParam;
+    if (coordsParam.length < 3 || coordsParam.some(isNaN)) {
+      finalCoords = [
+        Math.round(bot.entity.position.x),
+        Math.round(bot.entity.position.y),
+        Math.round(bot.entity.position.z)
+      ];
     }
     addWaypoint(name, finalCoords);
-    bot.chat(`📍 ${name} waypoint'i eklendi.`);
+    bot.chat(`📍 ${name} waypoint'i eklendi. Koordinat: ${finalCoords.join(', ')}`);
     return `${name} waypoint'i kaydedildi.`;
   }
 
+  // Waypoint'e git
   if (action === 'go' || action === 'git') {
     if (!name) return 'Waypoint adı belirtilmedi.';
     const waypoint = getWaypoint(name);
@@ -29,6 +47,7 @@ async function execute(bot, params) {
     }
   }
 
+  // Waypoint listele
   if (action === 'list' || action === 'liste') {
     const waypoints = getWaypoints();
     if (waypoints.length === 0) return 'Kayıtlı waypoint yok.';
@@ -37,6 +56,7 @@ async function execute(bot, params) {
     return list;
   }
 
+  // Waypoint sil
   if (action === 'delete' || action === 'sil') {
     if (!name) return 'Waypoint adı belirtilmedi.';
     const waypoint = getWaypoint(name);
@@ -46,18 +66,22 @@ async function execute(bot, params) {
     return `${name} waypoint'i silindi.`;
   }
 
+  // Tüm waypoint'leri temizle
   if (action === 'clear' || action === 'temizle') {
     clearWaypoints();
     bot.chat('🧹 Tüm waypoint\'ler temizlendi.');
     return 'Tüm waypoint\'ler temizlendi.';
   }
 
-  // Kısayol: waypoint isim
-  const waypointName = action || name || 'hedef';
-  const coords = [Math.round(bot.entity.position.x), Math.round(bot.entity.position.y), Math.round(bot.entity.position.z)];
-  addWaypoint(waypointName, coords);
-  bot.chat(`📍 ${waypointName} waypoint'i kaydedildi.`);
-  return `${waypointName} waypoint'i kaydedildi.`;
+  // Kısayol: isim verilmişse mevcut konumu o isimle kaydet
+  const coords = [
+    Math.round(bot.entity.position.x),
+    Math.round(bot.entity.position.y),
+    Math.round(bot.entity.position.z)
+  ];
+  addWaypoint(action, coords);
+  bot.chat(`📍 ${action} waypoint'i kaydedildi. Koordinat: ${coords.join(', ')}`);
+  return `${action} waypoint'i kaydedildi.`;
 }
 
 module.exports = { execute };
