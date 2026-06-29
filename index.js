@@ -1,94 +1,106 @@
 const mineflayer = require('mineflayer');
-const { pathfinder, goals, Movements } = require('mineflayer-pathfinder');
+const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
 const collectBlock = require('mineflayer-collectblock');
-const pvp = require('mineflayer-pvp').plugin;
-const armorManager = require('mineflayer-armor-manager');
-const fs = require('fs');
-require('dotenv').config();
+const { Vec3 } = require('vec3');
+const { OpenAI } = require('openai');
+const express = require('express');
 
-// --- HAFIZA SİSTEMİ ---
-let memories = {};
-try {
-    if (fs.existsSync('memory.json')) {
-        memories = JSON.parse(fs.readFileSync('memory.json', 'utf8'));
-    }
-} catch (e) { console.log("Hafıza dosyası oluşturuluyor..."); }
-
-function saveMemory() { fs.writeFileSync('memory.json', JSON.stringify(memories, null, 2)); }
-
-// --- BOT BAŞLATMA ---
-const bot = mineflayer.createBot({
-    host: process.env.SERVER_IP || 'localhost',
-    username: 'Ultimate_Agent',
-    version: '1.21.1'
+// Groq API Kurulumu (Render'da GROQ_API_KEY olarak ekle!)
+const openai = new OpenAI({ 
+    apiKey: process.env.GROQ_API_KEY, 
+    baseURL: 'https://api.groq.com/openai/v1' 
 });
 
-bot.loadPlugin(pathfinder);
-bot.loadPlugin(collectBlock.plugin);
-bot.loadPlugin(pvp);
-bot.loadPlugin(armorManager);
+const app = express();
+app.use(express.urlencoded({ extended: true }));
 
-// --- DEVRİYE MODÜLÜ ---
-let isPatrolling = false;
-const patrolRoute = ['maden', 'depo', 'ev']; 
-let currentPatrolIndex = 0;
+let bot = null;
+let isMuted = false;
+let chatHistory = []; // Token tasarrufu için geçmişi tutuyoruz
 
-async function startPatrol() {
-    isPatrolling = true;
-    while (isPatrolling) {
-        const locName = patrolRoute[currentPatrolIndex];
-        if (memories[locName]) {
-            bot.chat(`Gidilen durak: ${locName}`);
-            await bot.pathfinder.goto(new goals.GoalBlock(memories[locName].x, memories[locName].y, memories[locName].z));
-            await new Promise(r => setTimeout(r, 5000));
-        }
-        currentPatrolIndex = (currentPatrolIndex + 1) % patrolRoute.length;
-    }
+// --- EYLEMLER ---
+const actions = {
+    kir: async (bot, block) => { 
+        const b = bot.findBlock({ matching: (bl) => bl.name === block });
+        if (b) await bot.collectBlock.collect(b);
+    },
+    saldir: async (bot, isim) => { 
+        const e = Object.values(bot.entities).find(e => e.type === 'player' && e.username.toLowerCase().includes(isim.toLowerCase()));
+        if (e) bot.attack(e);
+    },
+    npcBul: async (bot, isim) => {
+        const npc = Object.values(bot.entities).find(e => e.type === 'player' && e.username.toLowerCase().includes(isim.toLowerCase()));
+        if (npc) bot.pathfinder.setGoal(new goals.GoalFollow(npc, 1), true);
+    },
+    sagTikla: async (bot, isim) => {
+        const npc = Object.values(bot.entities).find(e => e.type === 'player' && e.username.toLowerCase().includes(isim.toLowerCase()));
+        if (npc) bot.activateEntity(npc);
+    },
+    tiklaSlot: async (bot, slot) => {
+        if (bot.currentWindow) await bot.clickWindow(parseInt(slot), 0, 0);
+    },
+    komutKullan: async (bot, komut) => { bot.chat(`/${komut}`); }
+};
+
+// --- AI BEYİN ---
+async function getAIResponse(username, message) {
+    chatHistory.push({ role: "user", content: `${username}: ${message}` });
+    if (chatHistory.length > 6) chatHistory.shift(); 
+
+    const response = await openai.chat.completions.create({
+        model: "llama3-70b-8192",
+        messages: [
+            { role: "system", content: "Sen bir Minecraft botusun. Kısa ve öz konuş. Komut çalıştırman gerekirse mesajının başına 'ACTION:' koy ve JSON yaz: ACTION: {\"action\": \"kir\", \"args\": [\"stone\"]}. Sohbet edeceksen normal konuş." },
+            ...chatHistory
+        ]
+    });
+
+    const aiCevabi = response.choices[0].message.content;
+    chatHistory.push({ role: "assistant", content: aiCevabi });
+    return aiCevabi;
 }
 
-// --- ANA DÖNGÜ (PHYSIC TICK) ---
-bot.on('physicTick', () => {
-    // 1. Hayatta Kalma
-    if (bot.food < 15) {
-        const food = bot.inventory.items().find(i => i.name.includes('cooked') || i.name === 'apple');
-        if (food) bot.equip(food, 'hand').then(() => bot.consume());
-    }
+// --- BOT LOGİC ---
+function createBot(username, host, port) {
+    bot = mineflayer.createBot({ host, port: parseInt(port), username, version: '1.21.1' });
+    bot.loadPlugin(pathfinder);
+    bot.loadPlugin(collectBlock);
 
-    // 2. Sosyal Farkındalık (Göz Takibi)
-    const target = bot.nearestEntity(e => e.type === 'player' && bot.entity.position.distanceTo(e.position) < 8);
-    if (target && !bot.pathfinder.isMoving()) {
-        bot.lookAt(target.position.offset(0, 1.6, 0));
-    }
+    bot.on('end', () => setTimeout(() => createBot(username, host, port), 5000));
 
-    // 3. Tehlike (Creeper)
-    const danger = bot.nearestEntity(e => e.name === 'creeper' && e.position.distanceTo(bot.entity.position) < 5);
-    if (danger) {
-        bot.chat("TEHLİKE! KAÇIYORUM!");
-        bot.pathfinder.setGoal(new goals.GoalNear(bot.entity.position.x + 10, bot.entity.position.y, bot.entity.position.z + 10, 1));
-    }
+    bot.on('chat', async (username, message) => {
+        if (username === bot.username) return;
+
+        // Komutlar
+        if (message.includes('!sessiz')) { isMuted = true; bot.chat("Sessiz moda geçtim."); return; }
+        if (message.includes('!konus')) { isMuted = false; bot.chat("Geri döndüm."); return; }
+        if (message.toLowerCase().includes('login')) bot.chat('/login ŞİFREN'); // ŞİFRENİ BURAYA YAZ
+        
+        if (isMuted) return;
+
+        // Botun ismi geçiyorsa cevap ver
+        if (message.toLowerCase().includes(bot.username.toLowerCase()) || message.startsWith('!')) {
+            const aiCevabi = await getAIResponse(username, message);
+            console.log("AI:", aiCevabi);
+
+            if (aiCevabi.includes('ACTION:')) {
+                try {
+                    const jsonPart = aiCevabi.split('ACTION:')[1].trim();
+                    const data = JSON.parse(jsonPart);
+                    if (actions[data.action]) await actions[data.action](bot, ...data.args);
+                } catch (e) { bot.chat("Komutu anlamadım."); }
+            } else {
+                bot.chat(aiCevabi);
+            }
+        }
+    });
+}
+
+// --- WEB PANELİ ---
+app.get('/', (req, res) => res.send('<form action="/connect" method="POST"><input name="ip" placeholder="IP"><input name="port" value="25565"><input name="name" placeholder="Bot İsmi"><button>Başlat</button></form>'));
+app.post('/connect', (req, res) => {
+    createBot(req.body.name, req.body.ip, req.body.port);
+    res.send("Bot bağlandı!");
 });
 
-// --- KOMUT SİSTEMİ ---
-bot.on('chat', async (username, message) => {
-    if (username === bot.username) return;
-    const args = message.split(' ');
-
-    if (message.startsWith('burayı kaydet ')) {
-        memories[args[2]] = bot.entity.position;
-        saveMemory();
-        bot.chat(`'${args[2]}' kaydedildi.`);
-    } 
-    else if (args[0] === 'git') {
-        const pos = memories[args[1]];
-        if (pos) bot.pathfinder.setGoal(new goals.GoalBlock(pos.x, pos.y, pos.z));
-    }
-    else if (message === 'devriyeyi başlat') {
-        startPatrol();
-    }
-    else if (message === 'devriyeyi durdur') {
-        isPatrolling = false;
-        bot.pathfinder.setGoal(null);
-    }
-});
-
-bot.on('spawn', () => bot.chat("Sisteme giriş yaptım. Otonom mod aktif."));
+app.listen(process.env.PORT || 3000);
