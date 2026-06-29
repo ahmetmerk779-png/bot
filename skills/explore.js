@@ -52,14 +52,14 @@ async function detectPointsOfInterest(bot) {
   if (villagers.length > 0) {
     const coords = [villagers[0].position.x, villagers[0].position.y, villagers[0].position.z];
     addDiscovery('village', coords, 'Köy');
-    bot.chat(`🏘️ Köy bulundu!`);
+    if (bot._client?.state === 'connected') bot.chat(`🏘️ Köy bulundu!`);
   }
 
   const blockBelow = bot.blockAt(bot.entity.position.offset(0, -5, 0));
   if (blockBelow && blockBelow.name === 'air') {
     const coords = [bot.entity.position.x, bot.entity.position.y, bot.entity.position.z];
     addDiscovery('cave', coords, 'Mağara');
-    bot.chat(`🕳️ Mağara bulundu!`);
+    if (bot._client?.state === 'connected') bot.chat(`🕳️ Mağara bulundu!`);
   }
 
   const valuableBlocks = ['iron_ore', 'gold_ore', 'diamond_ore'];
@@ -68,14 +68,18 @@ async function detectPointsOfInterest(bot) {
     if (block) {
       const coords = [block.position.x, block.position.y, block.position.z];
       addDiscovery('valuable', coords, blockType);
-      bot.chat(`💎 ${blockType} bulundu!`);
+      if (bot._client?.state === 'connected') bot.chat(`💎 ${blockType} bulundu!`);
     }
   }
 }
 
+// ============ GÜVENLİ DURDURMA ============
 function stopExploring(bot) {
   exploring = false;
-  bot.chat('Keşif modu durduruldu.');
+  // Sadece bot bağlıysa mesaj gönder
+  if (bot && bot._client && bot._client.state === 'connected') {
+    bot.chat('Keşif modu durduruldu.');
+  }
   currentTarget = null;
 }
 
