@@ -1,4 +1,4 @@
-// config.js - OpenRouter desteği eklendi
+// config.js - Mistral desteği eklendi
 const fs = require('fs');
 const path = require('path');
 
@@ -24,17 +24,22 @@ try {
 }
 
 // ============ AI SAĞLAYICI SEÇİMİ ============
-// "groq" veya "openrouter" olarak değiştirebilirsin
-config.aiProvider = process.env.AI_PROVIDER || 'openrouter';
+config.aiProvider = process.env.AI_PROVIDER || 'mistral';
 
-// OpenRouter ayarları
+// Mistral ayarları
+config.mistralApiKey = process.env.MISTRAL_API_KEY;
+config.mistralModel = process.env.MISTRAL_MODEL || 'mistral-small-latest';
+
+// OpenRouter (yedek)
 config.openRouterApiKey = process.env.OPENROUTER_API_KEY;
-config.openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free'// Groq ayarları (yedek)
+config.openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free';
+
+// Groq (yedek)
 config.groqApiKey = process.env.GROQ_API_KEY;
 config.groqModel = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
 config.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
 
-// Proxy, anti-AFK, hafıza, dashboard
+// Diğer ayarlar
 config.proxy = {
   enabled: false,
   type: 'socks5',
