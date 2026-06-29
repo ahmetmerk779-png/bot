@@ -1,4 +1,4 @@
-#waypointSection {
+#locationSection {
   background: #1a1a2e;
   padding: 15px;
   border-radius: 8px;
@@ -6,22 +6,22 @@
   border: 1px solid #2a2a4e;
 }
 
-#waypointSection h3 {
-  color: #00d4ff;
+#locationSection h3 {
+  color: #ffaa00;
   margin-bottom: 10px;
 }
 
-#waypointSection input {
+#locationSection input {
   background: #0d0d1a;
   color: #e0e0e0;
   border: 1px solid #2a2a4e;
   padding: 5px 10px;
   border-radius: 4px;
   margin: 5px;
-  width: 100px;
+  width: 150px;
 }
 
-#waypointSection button {
+#locationSection button {
   background: #2a2a4e;
   color: #e0e0e0;
   border: none;
@@ -31,19 +31,14 @@
   margin: 5px;
 }
 
-#waypointSection button:hover {
+#locationSection button:hover {
   background: #3a3a6e;
 }
 
-#waypointsList {
-  list-style: none;
-  padding: 0;
+#locationSection .tpa-btn {
+  background: #4a2a2e;
 }
 
-#waypointsList li {
-  background: #0d0d1a;
-  padding: 5px 10px;
-  margin: 3px 0;
-  border-radius: 4px;
-  border-left: 3px solid #00d4ff;
-  }
+#locationSection .tpa-btn:hover {
+  background: #5a3a3e;
+}
