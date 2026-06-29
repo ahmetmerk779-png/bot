@@ -1,19 +1,121 @@
-* { margin:0; padding:0; box-sizing:border-box; }
-body { background:#0a0a1a; color:#e0e0e0; font-family:sans-serif; padding:20px; }
-#app { max-width:900px; margin:auto; }
-header { background:#1a1a2e; padding:15px; border-radius:10px; display:flex; justify-content:space-between; align-items:center; }
-#settings, #console, #quick { background:#1a1a2e; padding:15px; border-radius:10px; margin-top:15px; }
-#settings input, #settings select { background:#0d0d1a; border:1px solid #2a2a4e; color:#fff; padding:8px; border-radius:5px; margin:5px; width:150px; }
-#settings button { background:#00d4ff; border:none; padding:8px 20px; border-radius:5px; color:#000; font-weight:bold; cursor:pointer; }
-#logContainer { height:300px; overflow-y:auto; background:#0d0d1a; border-radius:5px; padding:10px; font-family:monospace; font-size:13px; }
-#logContainer .log-entry { padding:3px 0; border-bottom:1px solid #1a1a2e; }
-#logContainer .type-sistem { color:#00d4ff; }
-#logContainer .type-hata { color:#ff4444; }
-#logContainer .type-bot { color:#44ff88; }
-#logContainer .type-sohbet { color:#ffaa00; }
-#commandBox { display:flex; gap:10px; margin-top:10px; }
-#commandInput { flex:1; padding:10px; background:#0d0d1a; border:1px solid #2a2a4e; border-radius:5px; color:#fff; }
-#sendCommand { padding:10px 20px; background:#2a2a4e; border:none; border-radius:5px; color:#fff; cursor:pointer; }
-#quick button { background:#2a2a4e; border:1px solid #3a3a6e; color:#fff; padding:8px 15px; border-radius:5px; margin:5px; cursor:pointer; }
-#quick button:hover { background:#3a3a6e; }
-footer { text-align:center; color:#666; margin-top:20px; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a1a;
+  color: #e0e0e0;
+  font-family: 'Segoe UI', Arial, sans-serif;
+  padding: 20px;
+}
+#app { max-width: 1200px; margin: 0 auto; }
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  background: #1a1a2e;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  border: 1px solid #2a2a4e;
+}
+header h1 { color: #00d4ff; }
+#status {
+  padding: 5px 15px;
+  border-radius: 20px;
+  background: #00ff8844;
+  color: #00ff88;
+  border: 1px solid #00ff88;
+}
+
+#settings-panel, #botInfo, #console, #quickCommands {
+  background: #1a1a2e;
+  padding: 15px;
+  border-radius: 10px;
+  border: 1px solid #2a2a4e;
+  margin-bottom: 15px;
+}
+h2 {
+  font-size: 18px;
+  color: #00d4ff;
+  margin-bottom: 10px;
+}
+
+#settings-panel input, #settings-panel select {
+  background: #0d0d1a;
+  border: 1px solid #2a2a4e;
+  padding: 8px 12px;
+  border-radius: 5px;
+  color: #e0e0e0;
+  margin: 5px;
+  width: 150px;
+}
+#settings-panel button {
+  background: #00d4ff;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 5px;
+  color: #000;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#botInfo p { margin: 5px 0; color: #b0b0d0; }
+#botInfo span { color: #ffffff; font-weight: bold; }
+
+#logContainer {
+  height: 250px;
+  overflow-y: auto;
+  background: #0d0d1a;
+  border-radius: 5px;
+  padding: 10px;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  margin-bottom: 10px;
+}
+#logContainer .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
+#logContainer .log-entry .time { color: #666; margin-right: 10px; }
+#logContainer .log-entry .type-sistem { color: #00d4ff; }
+#logContainer .log-entry .type-komut { color: #ffaa00; }
+#logContainer .log-entry .type-ai { color: #aa66ff; }
+#logContainer .log-entry .type-hata { color: #ff4444; }
+#logContainer .log-entry .type-bot { color: #44ff88; }
+#logContainer .log-entry .type-sohbet { color: #88ddff; }
+
+#commandBox { display: flex; gap: 10px; }
+#commandInput {
+  flex: 1;
+  padding: 10px;
+  background: #0d0d1a;
+  border: 1px solid #2a2a4e;
+  border-radius: 5px;
+  color: #e0e0e0;
+}
+#commandInput:focus { outline: none; border-color: #00d4ff; }
+
+button, #sendCommand {
+  padding: 8px 15px;
+  background: #2a2a4e;
+  border: none;
+  border-radius: 5px;
+  color: #e0e0e0;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+button:hover, #sendCommand:hover { background: #3a3a6e; }
+
+.quick-btn {
+  margin: 5px;
+  padding: 8px 15px;
+  background: #2a2a4e;
+  border: 1px solid #3a3a6e;
+  border-radius: 5px;
+  color: #e0e0e0;
+  cursor: pointer;
+}
+.quick-btn:hover { background: #3a3a6e; }
+
+footer {
+  margin-top: 20px;
+  text-align: center;
+  color: #666;
+  padding: 10px;
+  }
