@@ -1,54 +1,70 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-  <title>Aesir Bot</title>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Minecraft Bot</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div id="app">
     <header>
-      <h1>🤖 Aesir Bot</h1>
+      <h1>🤖 AI Minecraft Bot</h1>
       <span id="status">🟢 Çevrimiçi</span>
     </header>
 
-    <div id="settings">
-      <h2>⚙️ Ayarlar</h2>
+    <!-- AYARLAR -->
+    <div id="settings-panel">
+      <h2>⚙️ Bağlantı Ayarları</h2>
       <form id="settingsForm">
         <input type="text" id="setBotName" placeholder="Bot İsmi">
         <input type="text" id="setServerHost" placeholder="Sunucu IP">
-        <input type="number" id="setServerPort" placeholder="Port">
-        <input type="text" id="setVersion" placeholder="Sürüm">
+        <input type="number" id="setServerPort" placeholder="Port" value="25565">
+        <input type="text" id="setVersion" placeholder="Sürüm" value="1.8.9">
         <select id="setAuth">
           <option value="offline">Offline</option>
           <option value="microsoft">Microsoft</option>
         </select>
-        <button type="submit">💾 Kaydet</button>
+        <input type="number" id="setRenderDistance" placeholder="Render Distance" value="10">
+        <button type="submit">💾 Kaydet ve Yeniden Başlat</button>
       </form>
     </div>
 
+    <!-- BOT DURUMU -->
+    <div id="botInfo">
+      <h2>📊 Bot Durumu</h2>
+      <p>İsim: <span id="botName">-</span></p>
+      <p>Sunucu: <span id="serverInfo">-</span></p>
+      <p>Can: <span id="health">-</span></p>
+      <p>Açlık: <span id="food">-</span></p>
+      <p>Koordinat: <span id="coords">-</span></p>
+    </div>
+
+    <!-- KONSOL -->
     <div id="console">
       <h2>📋 Konsol</h2>
       <div id="logContainer"></div>
       <div id="commandBox">
-        <input type="text" id="commandInput" placeholder="Komut yaz... (ör: move 100 64 200)">
+        <input type="text" id="commandInput" placeholder="Doğal dil komut gönder... (örnek: git x 100 z 200)">
         <button id="sendCommand">Gönder</button>
       </div>
     </div>
 
-    <div id="quick">
-      <h2>⚡ Hızlı</h2>
-      <button data-cmd="explore">🔍 Keşfet</button>
-      <button data-cmd="stopfollow">⏹️ Takip Durdur</button>
-      <button data-cmd="eat">🍖 Yemek</button>
-      <button data-cmd="observe">👀 Gözlem</button>
+    <!-- HIZLI KOMUTLAR -->
+    <div id="quickCommands">
+      <h2>⚡ Hızlı Komutlar</h2>
+      <button class="quick-btn" data-command="observe">👀 Gözlem Yap</button>
+      <button class="quick-btn" data-command="follow BenimAIBot">👤 Takip Et</button>
+      <button class="quick-btn" data-command="stopFollow">⏹️ Takibi Durdur</button>
+      <button class="quick-btn" data-command="eat">🍖 Yemek Ye</button>
+      <button class="quick-btn" data-command="chat Merhaba!">💬 Sohbet</button>
     </div>
 
     <footer>
-      <p>Powered by Mineflayer + Pathfinder</p>
+      <p>AI Minecraft Bot v4.0 | Powered by Mistral AI</p>
     </footer>
   </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/script.js"></script>
 </body>
