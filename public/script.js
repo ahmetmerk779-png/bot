@@ -1,18 +1,13 @@
 const socket = io();
-
-// DOM
 const logContainer = document.getElementById('logContainer');
 const commandInput = document.getElementById('commandInput');
 const sendBtn = document.getElementById('sendCommand');
-
-// Durum
 const botName = document.getElementById('botName');
 const serverInfo = document.getElementById('serverInfo');
 const health = document.getElementById('health');
 const food = document.getElementById('food');
 const coords = document.getElementById('coords');
 
-// ============ LOG EKLE ============
 function addLog(type, message) {
   const time = new Date().toLocaleTimeString();
   const entry = document.createElement('div');
@@ -22,7 +17,6 @@ function addLog(type, message) {
   logContainer.scrollTop = logContainer.scrollHeight;
 }
 
-// ============ KOMUT GÖNDER ============
 function sendCommand(command) {
   if (!command) return;
   socket.emit('command', { command });
@@ -30,21 +24,18 @@ function sendCommand(command) {
   commandInput.value = '';
 }
 
-// Enter ile gönder
 commandInput.addEventListener('keypress', (e) => {
   if (e.key === 'Enter') sendCommand(commandInput.value);
 });
 sendBtn.addEventListener('click', () => sendCommand(commandInput.value));
 
-// ============ HIZLI KOMUT YÖNETİMİ ============
+// ============ HIZLI KOMUTLAR ============
 let quickCommands = [];
-
 function loadQuickCommands() {
   try {
     const stored = localStorage.getItem('quickCommands');
-    if (stored) {
-      quickCommands = JSON.parse(stored);
-    } else {
+    if (stored) quickCommands = JSON.parse(stored);
+    else {
       quickCommands = [
         { label: '🔍 Keşfet', command: 'explore' },
         { label: '⏹️ Durdur', command: 'explore durdur' },
@@ -55,16 +46,12 @@ function loadQuickCommands() {
       ];
       saveQuickCommands();
     }
-  } catch (err) {
-    console.error('Quick commands yüklenemedi:', err);
-  }
+  } catch (err) { console.error(err); }
   renderQuickCommands();
 }
-
 function saveQuickCommands() {
   localStorage.setItem('quickCommands', JSON.stringify(quickCommands));
 }
-
 function renderQuickCommands() {
   const container = document.getElementById('quickCommandsList');
   if (!container) return;
@@ -73,14 +60,11 @@ function renderQuickCommands() {
     const wrapper = document.createElement('span');
     wrapper.style.display = 'inline-block';
     wrapper.style.margin = '5px';
-
     const btn = document.createElement('button');
     btn.className = 'quick-btn';
     btn.textContent = item.label;
-    btn.dataset.command = item.command;
     btn.addEventListener('click', () => sendCommand(item.command));
     wrapper.appendChild(btn);
-
     const delBtn = document.createElement('button');
     delBtn.textContent = '✕';
     delBtn.className = 'delete-quick-btn';
@@ -103,7 +87,6 @@ function renderQuickCommands() {
     container.appendChild(wrapper);
   });
 }
-
 document.getElementById('addQuickBtn')?.addEventListener('click', () => {
   const label = document.getElementById('newQuickLabel').value.trim();
   const command = document.getElementById('newQuickCommand').value.trim();
@@ -140,7 +123,7 @@ document.getElementById('listWpBtn')?.addEventListener('click', () => {
   sendCommand('waypoint list');
 });
 
-// ============ AYARLARI KAYDET (BAĞLANMA HATASI ÇÖZÜMÜ) ============
+// ============ AYARLARI KAYDET ============
 document.getElementById('settingsForm')?.addEventListener('submit', async (e) => {
   e.preventDefault();
   const data = {
@@ -151,7 +134,6 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
     auth: document.getElementById('setAuth').value,
     renderDistance: parseInt(document.getElementById('setRenderDistance').value)
   };
-
   try {
     const response = await fetch('/api/config', {
       method: 'POST',
@@ -163,11 +145,10 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
     addLog('sistem', `✅ ${result.message}`);
     setTimeout(() => location.reload(), 3000);
   } catch (err) {
-    addLog('hata', `❌ Ayarlar kaydedilemedi: ${err.message}`);
+    addLog('hata', `❌ ${err.message}`);
   }
 });
 
-// ============ MEVCUT AYARLARI YÜKLE ============
 async function loadConfig() {
   try {
     const response = await fetch('/api/config');
@@ -180,15 +161,12 @@ async function loadConfig() {
     document.getElementById('setAuth').value = config.auth || 'offline';
     document.getElementById('setRenderDistance').value = config.renderDistance || 10;
   } catch (err) {
-    addLog('hata', `❌ Ayarlar yüklenemedi: ${err.message}`);
+    addLog('hata', `❌ ${err.message}`);
   }
 }
 
 // ============ SOCKET OLAYLARI ============
-socket.on('log', (data) => {
-  addLog(data.type, data.message);
-});
-
+socket.on('log', (data) => addLog(data.type, data.message));
 socket.on('botStatus', (data) => {
   if (data.botName) botName.textContent = data.botName;
   if (data.server) serverInfo.textContent = data.server;
@@ -196,20 +174,17 @@ socket.on('botStatus', (data) => {
   if (data.food !== undefined) food.textContent = data.food;
   if (data.coords) coords.textContent = data.coords;
 });
-
 socket.on('waypointsUpdate', (data) => {
   const list = document.getElementById('waypointList');
   if (!list) return;
   list.innerHTML = data.map(w => `<li><strong>${w.name}</strong> - ${w.coords.join(', ')}</li>`).join('');
 });
-
 socket.on('discoveriesUpdate', (data) => {
   const list = document.getElementById('discoveriesList');
   if (!list) return;
   list.innerHTML = data.map(d => `<li>${d.name} - ${d.coords.join(', ')}</li>`).join('');
 });
 
-// ============ SAYFA YÜKLENİNCE ============
 document.addEventListener('DOMContentLoaded', () => {
   loadQuickCommands();
   loadConfig();
