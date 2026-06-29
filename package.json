@@ -1,19 +1,17 @@
 {
   "name": "minecraft-ai-bot",
   "version": "2.0.0",
-  "description": "Yapay zekalı Minecraft botu - Çoklu bot, waypoint, branch mining, keşif ve daha fazlası",
+  "description": "Yapay zekalı Minecraft botu",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "axios": "^1.6.2",
+    "cookie-parser": "^1.4.6",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "mineflayer": "^4.15.0",
-    "socket.io": "^4.6.1",
-    "vec3": "^0.1.7"
-  },
-  "author": "Your Name",
-  "license": "MIT"
+    "socket.io": "^4.6.1"
+  }
 }
