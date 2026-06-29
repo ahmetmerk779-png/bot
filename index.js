@@ -15,6 +15,7 @@ let isConnected = false;
 let reconnectAttempts = 0;
 const MAX_RECONNECT_ATTEMPTS = 5;
 
+// ============ BOT OLUŞTUR ============
 function createBot() {
   const botConfig = {
     host: config.serverHost,
@@ -32,7 +33,7 @@ function createBot() {
     isConnected = true;
     reconnectAttempts = 0;
     addEvent(memory, 'Bot oyuna giriş yaptı.');
-    bot.chat('Merhaba! Ben yapay zeka botuyum.');
+    if (bot._client?.state === 'connected') bot.chat('Merhaba! Ben yapay zeka botuyum.');
     loop();
   });
 
@@ -51,6 +52,7 @@ function createBot() {
     isConnected = false;
     addEvent(memory, `Bot bağlantısı kesildi: ${reason}`);
     
+    // Güvenli durdurma (artık chat çağırmazlar)
     stopExploring(bot);
     stopBranchMining(bot);
     
@@ -62,20 +64,20 @@ function createBot() {
       console.error('Maksimum yeniden bağlanma denemesine ulaşıldı.');
       addEvent(memory, 'Maksimum yeniden bağlanma denemesine ulaşıldı.');
     }
-  });// index.js en sonuna ekle
-require('./server');
+  });
 
+  // Özel mesaj (whisper) dinleyicisi
   bot.on('whisper', (username, message) => {
     console.log(`[ÖZEL] ${username}: ${message}`);
     addEvent(memory, `Özel mesaj: ${username}: ${message}`);
     
-    // TPA komutlarını algıla
     if (message.toLowerCase().includes('tpa') || message.toLowerCase().includes('tpa at')) {
-      bot.chat(`/tpa ${username}`);
-      bot.whisper(username, 'TPA gönderildi.');
+      if (bot._client?.state === 'connected') {
+        bot.chat(`/tpa ${username}`);
+        bot.whisper(username, 'TPA gönderildi.');
+      }
     }
     
-    // Takip komutlarını algıla
     if (message.toLowerCase().includes('takip et') || message.toLowerCase().includes('follow')) {
       skills.follow.execute(bot, [username]);
     }
@@ -88,23 +90,21 @@ require('./server');
   });
 
   bot.on('health', () => {
-    // Can düşükse otomatik yemek ye
     if (bot.health < 10 && bot.food < 10) {
       skills.eat.execute(bot, []);
     }
   });
 }
 
+// ============ ANA DÖNGÜ ============
 async function loop() {
   while (isConnected) {
     try {
-      // Keşif modu kontrolü
       if (isExploring()) {
         await sleep(1000);
         continue;
       }
 
-      // Branch mining kontrolü
       if (isBranchMining()) {
         const progress = getProgress();
         if (progress) {
@@ -114,7 +114,6 @@ async function loop() {
         continue;
       }
 
-      // Normal döngü
       const observation = await skills.observe.execute(bot);
       console.log('📊 Gözlem:', observation);
       addEvent(memory, observation);
@@ -169,8 +168,11 @@ async function loop() {
   }
 }
 
-// Bot'u başlat
+// ============ BOT'U BAŞLAT ============
 createBot();
+
+// ============ WEB SUNUCUSUNU BAŞLAT ============
+require('./server');
 
 // Graceful shutdown
 process.on('SIGINT', () => {
