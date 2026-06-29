@@ -1,13 +1,20 @@
 const socket = io();
+
+// DOM
 const logContainer = document.getElementById('logContainer');
 const commandInput = document.getElementById('commandInput');
 const sendBtn = document.getElementById('sendCommand');
+const radarCanvas = document.getElementById('radarCanvas');
+const ctx = radarCanvas.getContext('2d');
+
+// Durum
 const botName = document.getElementById('botName');
 const serverInfo = document.getElementById('serverInfo');
 const health = document.getElementById('health');
 const food = document.getElementById('food');
 const coords = document.getElementById('coords');
 
+// ============ LOG EKLE ============
 function addLog(type, message) {
   const time = new Date().toLocaleTimeString();
   const entry = document.createElement('div');
@@ -17,6 +24,7 @@ function addLog(type, message) {
   logContainer.scrollTop = logContainer.scrollHeight;
 }
 
+// ============ KOMUT GÖNDER ============
 function sendCommand(command) {
   if (!command) return;
   socket.emit('command', { command });
@@ -29,13 +37,15 @@ commandInput.addEventListener('keypress', (e) => {
 });
 sendBtn.addEventListener('click', () => sendCommand(commandInput.value));
 
-// ============ HIZLI KOMUTLAR ============
+// ============ HIZLI KOMUT YÖNETİMİ ============
 let quickCommands = [];
+
 function loadQuickCommands() {
   try {
     const stored = localStorage.getItem('quickCommands');
-    if (stored) quickCommands = JSON.parse(stored);
-    else {
+    if (stored) {
+      quickCommands = JSON.parse(stored);
+    } else {
       quickCommands = [
         { label: '🔍 Keşfet', command: 'explore' },
         { label: '⏹️ Durdur', command: 'explore durdur' },
@@ -46,12 +56,16 @@ function loadQuickCommands() {
       ];
       saveQuickCommands();
     }
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error('Quick commands yüklenemedi:', err);
+  }
   renderQuickCommands();
 }
+
 function saveQuickCommands() {
   localStorage.setItem('quickCommands', JSON.stringify(quickCommands));
 }
+
 function renderQuickCommands() {
   const container = document.getElementById('quickCommandsList');
   if (!container) return;
@@ -63,6 +77,7 @@ function renderQuickCommands() {
     const btn = document.createElement('button');
     btn.className = 'quick-btn';
     btn.textContent = item.label;
+    btn.dataset.command = item.command;
     btn.addEventListener('click', () => sendCommand(item.command));
     wrapper.appendChild(btn);
     const delBtn = document.createElement('button');
@@ -87,6 +102,7 @@ function renderQuickCommands() {
     container.appendChild(wrapper);
   });
 }
+
 document.getElementById('addQuickBtn')?.addEventListener('click', () => {
   const label = document.getElementById('newQuickLabel').value.trim();
   const command = document.getElementById('newQuickCommand').value.trim();
@@ -145,10 +161,11 @@ document.getElementById('settingsForm')?.addEventListener('submit', async (e) =>
     addLog('sistem', `✅ ${result.message}`);
     setTimeout(() => location.reload(), 3000);
   } catch (err) {
-    addLog('hata', `❌ ${err.message}`);
+    addLog('hata', `❌ Ayarlar kaydedilemedi: ${err.message}`);
   }
 });
 
+// ============ MEVCUT AYARLARI YÜKLE ============
 async function loadConfig() {
   try {
     const response = await fetch('/api/config');
@@ -161,12 +178,98 @@ async function loadConfig() {
     document.getElementById('setAuth').value = config.auth || 'offline';
     document.getElementById('setRenderDistance').value = config.renderDistance || 10;
   } catch (err) {
-    addLog('hata', `❌ ${err.message}`);
+    addLog('hata', `❌ Ayarlar yüklenemedi: ${err.message}`);
   }
 }
 
+// ============ RADAR ÇİZİMİ ============
+function drawRadar(entities) {
+  const w = radarCanvas.width;
+  const h = radarCanvas.height;
+  const centerX = w/2;
+  const centerY = h/2;
+  const radius = Math.min(w, h) / 2 - 20;
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Arka plan
+  const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+  gradient.addColorStop(0, '#1a2a3a');
+  gradient.addColorStop(1, '#0a0a1a');
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Halkalar
+  ctx.strokeStyle = '#2a4a5a';
+  ctx.lineWidth = 1;
+  for (let r = radius / 4; r < radius; r += radius / 4) {
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+
+  // Merkez çizgileri
+  ctx.strokeStyle = '#2a4a5a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(centerX - radius, centerY);
+  ctx.lineTo(centerX + radius, centerY);
+  ctx.moveTo(centerX, centerY - radius);
+  ctx.lineTo(centerX, centerY + radius);
+  ctx.stroke();
+
+  // Merkezde bot
+  ctx.fillStyle = '#00d4ff';
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
+  ctx.fill();
+  ctx.fillStyle = '#fff';
+  ctx.font = '10px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('Bot', centerX, centerY - 12);
+
+  // Varlıkları çiz
+  entities.forEach(e => {
+    const dist = e.distance;
+    if (dist > 30) return; // 30 blok ötesini gösterme
+    const angle = Math.atan2(e.z, e.x);
+    const r = (dist / 30) * radius;
+    const x = centerX + Math.sin(angle) * r;
+    const y = centerY - Math.cos(angle) * r;
+
+    let color = '#888';
+    let label = e.name;
+    if (e.type === 'player') { color = '#44ff88'; label = `👤 ${e.name}`; }
+    else if (e.type === 'mob') {
+      if (e.name === 'zombie' || e.name === 'skeleton' || e.name === 'spider' || e.name === 'creeper') {
+        color = '#ff4444';
+        label = `💀 ${e.name}`;
+      } else {
+        color = '#ffcc44';
+        label = `🐄 ${e.name}`;
+      }
+    }
+
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.fill();
+
+    // Üzerine gelince isim göster
+    ctx.fillStyle = '#fff';
+    ctx.font = '8px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText(label, x, y - 10);
+  });
+}
+
 // ============ SOCKET OLAYLARI ============
-socket.on('log', (data) => addLog(data.type, data.message));
+socket.on('log', (data) => {
+  addLog(data.type, data.message);
+});
+
 socket.on('botStatus', (data) => {
   if (data.botName) botName.textContent = data.botName;
   if (data.server) serverInfo.textContent = data.server;
@@ -174,17 +277,24 @@ socket.on('botStatus', (data) => {
   if (data.food !== undefined) food.textContent = data.food;
   if (data.coords) coords.textContent = data.coords;
 });
+
+socket.on('radarData', (data) => {
+  drawRadar(data);
+});
+
 socket.on('waypointsUpdate', (data) => {
   const list = document.getElementById('waypointList');
   if (!list) return;
   list.innerHTML = data.map(w => `<li><strong>${w.name}</strong> - ${w.coords.join(', ')}</li>`).join('');
 });
+
 socket.on('discoveriesUpdate', (data) => {
   const list = document.getElementById('discoveriesList');
   if (!list) return;
   list.innerHTML = data.map(d => `<li>${d.name} - ${d.coords.join(', ')}</li>`).join('');
 });
 
+// ============ SAYFA YÜKLENİNCE ============
 document.addEventListener('DOMContentLoaded', () => {
   loadQuickCommands();
   loadConfig();
