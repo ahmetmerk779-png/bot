@@ -1,47 +1,28 @@
-require('dotenv').config();
 const fs = require('fs');
 const path = require('path');
+const CONFIG_PATH = path.join(__dirname, 'config.json');
 
-let config = {};
+const defaults = {
+  botName: 'AFK_Bot',
+  serverHost: 'aesirmc.com',
+  serverPort: 25565,
+  version: '1.8.9',
+  auth: 'offline',
+  renderDistance: 10
+};
 
-try {
-  const configPath = path.join(__dirname, 'config.json');
-  if (fs.existsSync(configPath)) {
-    config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-  } else {
-    config = {
-      botName: 'BenimAIBot',
-      serverHost: 'voidforge763.mcsh.i',
-      serverPort: 25565,
-      version: '1.8.9',
-      renderDistance: 10,
-      auth: 'offline'
-    };
-  }
-} catch (err) {
-  console.error('Config okuma hatası:', err);
-  process.exit(1);
+function loadConfig() {
+  try {
+    if (fs.existsSync(CONFIG_PATH)) {
+      return { ...defaults, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) };
+    }
+  } catch (e) {}
+  return { ...defaults };
 }
 
-// ============ AI SAĞLAYICI SEÇİMİ ============
-config.aiProvider = process.env.AI_PROVIDER || 'mistral'; // 'groq' veya 'mistral'
+function saveConfig(data) {
+  fs.writeFileSync(CONFIG_PATH, JSON.stringify(data, null, 2));
+  return true;
+}
 
-// Mistral ayarları (YENİ)
-config.mistralApiKey = process.env.MISTRAL_API_KEY;
-config.mistralModel = process.env.MISTRAL_MODEL || 'mistral-small-latest';
-config.mistralUrl = 'https://api.mistral.ai/v1/chat/completions';
-
-// Groq ayarları (yedek)
-config.groqApiKey = process.env.GROQ_API_KEY;
-config.groqModel = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
-config.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
-
-// Diğer ayarlar
-config.proxy = { enabled: false, type: 'socks5', host: '', port: 1080, username: '', password: '' };
-config.antiAFK = { enabled: true, interval: 45, action: 'jump' };
-config.memoryFile = './memory/memory.json';
-config.maxMemoryEntries = 100;
-config.dashboardPassword = process.env.DASHBOARD_PASSWORD || 'admin123';
-config.port = process.env.PORT || 3000;
-
-module.exports = config;
+module.exports = { loadConfig, saveConfig };
