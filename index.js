@@ -13,7 +13,7 @@ let bot = null;
 let memory = loadMemory();
 let isConnected = false;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 5;
+const MAX_RECONNECT_ATTEMPTS = 100000000000000000000000000000000;
 
 // ============ BOT OLUŞTUR ============
 function createBot() {
