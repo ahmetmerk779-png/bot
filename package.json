@@ -1,14 +1,12 @@
 {
-  "name": "minecraft-bot",
+  "name": "aesir-bot",
   "version": "1.0.0",
   "main": "manager.js",
-  "scripts": {
-    "start": "node manager.js"
-  },
   "dependencies": {
     "express": "^4.18.2",
     "mineflayer": "^4.22.0",
     "mineflayer-pathfinder": "^2.4.3",
-    "openai": "^4.0.0"
+    "mineflayer-collectblock": "^2.2.0",
+    "vec3": "^0.1.7"
   }
 }
