@@ -1,12 +1,13 @@
+// ai/mistral.js - Mistral API ile iletişim
 const axios = require('axios');
 const config = require('../config');
 
 async function askMistral(systemPrompt, userPrompt) {
   try {
     const response = await axios.post(
-      'https://api.mistral.ai/v1/chat/completions',
+      config.mistralUrl,
       {
-        model: config.mistralModel || 'mistral-small-latest',
+        model: config.mistralModel,
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
