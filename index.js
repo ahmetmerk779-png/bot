@@ -9,11 +9,14 @@ const { sleep } = require('./utils/helpers');
 const { isExploring, stopExploring } = require('./skills/explore');
 const { isBranchMining, getProgress, stopBranchMining } = require('./skills/branchMine');
 
+// ============ SOCKET.IO'YU SERVER'DAN AL ============
+const { io } = require('./server');
+
 let bot = null;
 let memory = loadMemory();
 let isConnected = false;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 100000000000000000000000000000000;
+const MAX_RECONNECT_ATTEMPTS = 500000000000;
 
 // ============ BOT OLUŞTUR ============
 function createBot() {
@@ -33,7 +36,15 @@ function createBot() {
     isConnected = true;
     reconnectAttempts = 0;
     addEvent(memory, 'Bot oyuna giriş yaptı.');
-    if (bot._client?.state === 'connected') bot.chat('Merhaba! Ben yapay zeka botuyum.');
+    if (bot._client?.state === 'connected') bot.chat('Merhaba!');
+    // Web'e durum gönder
+    io.emit('botStatus', {
+      botName: config.botName,
+      server: `${config.serverHost}:${config.serverPort}`,
+      health: bot.health,
+      food: bot.food,
+      coords: `${Math.round(bot.entity.position.x)}, ${Math.round(bot.entity.position.y)}, ${Math.round(bot.entity.position.z)}`
+    });
     loop();
   });
 
@@ -45,56 +56,84 @@ function createBot() {
   bot.on('error', (err) => {
     console.error('Bot hatası:', err.message);
     addEvent(memory, `Hata: ${err.message}`);
+    io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
   });
 
   bot.on('end', (reason) => {
     console.log(`Bot bağlantısı kesildi: ${reason}`);
     isConnected = false;
     addEvent(memory, `Bot bağlantısı kesildi: ${reason}`);
-    
-    // Güvenli durdurma (artık chat çağırmazlar)
     stopExploring(bot);
     stopBranchMining(bot);
+    io.emit('log', { type: 'sistem', message: `⚠️ Bağlantı kesildi: ${reason}` });
     
     if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
       reconnectAttempts++;
       console.log(`Yeniden bağlanma denemesi ${reconnectAttempts}/${MAX_RECONNECT_ATTEMPTS}...`);
       setTimeout(createBot, 5000 * reconnectAttempts);
     } else {
-      console.error('Maksimum yeniden bağlanma denemesine ulaşıldı.');
-      addEvent(memory, 'Maksimum yeniden bağlanma denemesine ulaşıldı.');
+      io.emit('log', { type: 'hata', message: '❌ Maksimum yeniden bağlanma denemesi aşıldı.' });
     }
   });
 
-  // Özel mesaj (whisper) dinleyicisi
+  // Hareket halinde koordinat güncelle
+  bot.on('move', () => {
+    if (isConnected) {
+      io.emit('botStatus', {
+        health: bot.health,
+        food: bot.food,
+        coords: `${Math.round(bot.entity.position.x)}, ${Math.round(bot.entity.position.y)}, ${Math.round(bot.entity.position.z)}`
+      });
+    }
+  });
+
+  // Özel mesaj
   bot.on('whisper', (username, message) => {
-    console.log(`[ÖZEL] ${username}: ${message}`);
-    addEvent(memory, `Özel mesaj: ${username}: ${message}`);
-    
-    if (message.toLowerCase().includes('tpa') || message.toLowerCase().includes('tpa at')) {
+    io.emit('log', { type: 'sistem', message: `💬 ${username}: ${message}` });
+    if (message.toLowerCase().includes('tpa')) {
       if (bot._client?.state === 'connected') {
         bot.chat(`/tpa ${username}`);
         bot.whisper(username, 'TPA gönderildi.');
       }
     }
-    
-    if (message.toLowerCase().includes('takip et') || message.toLowerCase().includes('follow')) {
-      skills.follow.execute(bot, [username]);
-    }
   });
 
   bot.on('chat', (username, message) => {
     if (username === bot.username) return;
-    console.log(`[SOHBET] ${username}: ${message}`);
-    addEvent(memory, `Sohbet: ${username}: ${message}`);
+    io.emit('log', { type: 'sistem', message: `💬 ${username}: ${message}` });
   });
 
+  // Otomatik yemek
   bot.on('health', () => {
     if (bot.health < 10 && bot.food < 10) {
       skills.eat.execute(bot, []);
     }
   });
 }
+
+// ============ BOT KOMUTLARINI DİNLE (WEB'DEN) ============
+io.on('botCommand', async (data) => {
+  const command = data.command;
+  console.log(`📥 Web'den komut: ${command}`);
+  
+  // Komutu işle (örnek: "move 100 64 200" veya "mine diamond_ore")
+  const parts = command.trim().split(' ');
+  const action = parts[0];
+  const params = parts.slice(1);
+  
+  if (skills[action]) {
+    try {
+      const result = await skills[action].execute(bot, params);
+      io.emit('log', { type: 'bot', message: `✅ ${result}` });
+    } catch (err) {
+      io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
+    }
+  } else {
+    // Bilinmeyen komut – AI'ya sor
+    io.emit('log', { type: 'ai', message: `🤔 Anlamadım, AI'ya soruyorum...` });
+    // Burada isteğe bağlı olarak AI'ya yönlendirebilirsin
+  }
+});
 
 // ============ ANA DÖNGÜ ============
 async function loop() {
@@ -104,11 +143,10 @@ async function loop() {
         await sleep(1000);
         continue;
       }
-
       if (isBranchMining()) {
         const progress = getProgress();
         if (progress) {
-          console.log(`Branch Mining: ${progress.progress}% (${progress.currentBranch}/${progress.totalBranches})`);
+          io.emit('log', { type: 'sistem', message: `⛏️ Branch Mining: %${progress.progress} (${progress.currentBranch}/${progress.totalBranches})` });
         }
         await sleep(1000);
         continue;
@@ -117,11 +155,12 @@ async function loop() {
       const observation = await skills.observe.execute(bot);
       console.log('📊 Gözlem:', observation);
       addEvent(memory, observation);
+      io.emit('log', { type: 'bot', message: `👀 ${observation}` });
 
       const systemPrompt = buildSystemPrompt();
       const userPrompt = buildUserPrompt(observation, memory);
       const rawResponse = await askGroq(systemPrompt, userPrompt);
-      console.log('🧠 AI Cevabı:', rawResponse);
+      console.log('🧠 AI:', rawResponse);
 
       if (!rawResponse) {
         await sleep(5000);
@@ -140,7 +179,7 @@ async function loop() {
           action = parsed.action;
           params = parsed.params || [];
         } else {
-          console.log('Geçerli komut bulunamadı.');
+          io.emit('log', { type: 'ai', message: `⚠️ AI geçersiz cevap verdi` });
           await sleep(3000);
           continue;
         }
@@ -150,19 +189,18 @@ async function loop() {
         const result = await skills[action].execute(bot, params);
         console.log('✅ Sonuç:', result);
         addEvent(memory, `Yapılan: ${action} ${params.join(' ')} -> ${result}`);
+        io.emit('log', { type: 'bot', message: `✅ ${result}` });
         if (result.includes('kazıldı') || result.includes('yapıldı')) {
           addKnowledge(memory, result);
         }
       } else {
-        console.log(`❌ Bilinmeyen yetenek: ${action}`);
-        addEvent(memory, `Hatalı komut: ${action}`);
+        io.emit('log', { type: 'hata', message: `❌ Bilinmeyen yetenek: ${action}` });
       }
 
       await sleep(3000);
-
     } catch (err) {
-      console.error('🔄 Döngü hatası:', err.message);
-      addEvent(memory, `Döngü hatası: ${err.message}`);
+      console.error('Döngü hatası:', err.message);
+      io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       await sleep(5000);
     }
   }
@@ -171,25 +209,9 @@ async function loop() {
 // ============ BOT'U BAŞLAT ============
 createBot();
 
-// ============ WEB SUNUCUSUNU BAŞLAT ============
-require('./server');
-
 // Graceful shutdown
 process.on('SIGINT', () => {
   console.log('Kapatılıyor...');
   if (bot) bot.end();
   process.exit(0);
-});// ============ SOCKET EVENT'LERİNİ DİNLE ============
-const { io } = require('./server');
-
-io.on('connection', (socket) => {
-  socket.on('restartBot', () => {
-    console.log('🔄 Bot yeniden başlatılıyor...');
-    if (bot) {
-      bot.end();
-      setTimeout(createBot, 2000);
-    } else {
-      createBot();
-    }
-  });
 });
