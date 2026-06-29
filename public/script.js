@@ -1,62 +1,65 @@
 // Mevcut socket.io bağlantısı ve diğer fonksiyonlar...
 
-// Koordinatları söyle
-document.getElementById('sayCoordsBtn')?.addEventListener('click', () => {
-  const command = `/coords söyle`;
+// Koordinat Paylaş
+document.getElementById('shareCoordsBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('shareTarget')?.value || '';
+  const command = target ? `/share ${target}` : '/share';
   sendCommand(command);
 });
 
-// Koordinatları bir oyuncuya mesaj olarak gönder
-document.getElementById('msgCoordsBtn')?.addEventListener('click', () => {
-  const target = document.getElementById('coordsTarget')?.value;
-  if (!target) return alert('Hedef oyuncu adı girin.');
-  const command = `/coords mesaj ${target}`;
-  sendCommand(command);
-});
-
-// TPA isteği gönder
+// TPA At
 document.getElementById('tpaBtn')?.addEventListener('click', () => {
   const target = document.getElementById('tpaTarget')?.value;
-  if (!target) return alert('Hedef oyuncu adı girin.');
-  const command = `/coords tpa ${target}`;
+  if (!target) return alert('TPA atılacak oyuncu adını girin.');
+  const command = `/tpa ${target}`;
   sendCommand(command);
 });
 
-// TPA kabul et
+// TPA Kabul
 document.getElementById('tpacceptBtn')?.addEventListener('click', () => {
-  const command = `/coords tpaccept`;
-  sendCommand(command);
+  sendCommand('/tpaccept');
 });
 
-// TPA reddet
+// TPA Reddet
 document.getElementById('tpdenyBtn')?.addEventListener('click', () => {
-  const command = `/coords tpdeny`;
+  sendCommand('/tpdeny');
+});
+
+// Konum Sorgula
+document.getElementById('whereBtn')?.addEventListener('click', () => {
+  sendCommand('/where');
+});
+
+// Yakındaki Oyuncular
+document.getElementById('nearbyBtn')?.addEventListener('click', () => {
+  const radius = document.getElementById('nearbyRadius')?.value || 50;
+  sendCommand(`/nearby ${radius}`);
+});
+
+// Koordinat Kaydet
+document.getElementById('logCoordsBtn')?.addEventListener('click', () => {
+  const note = document.getElementById('logNote')?.value || '';
+  const command = note ? `/log ${note}` : '/log';
   sendCommand(command);
 });
 
-// Oyuncuları listele
-document.getElementById('listPlayersBtn')?.addEventListener('click', () => {
-  const command = `/coords oyuncular`;
-  sendCommand(command);
+// Koordinat Kayıtlarını Listele
+document.getElementById('listLogsBtn')?.addEventListener('click', () => {
+  sendCommand('/listlogs');
 });
 
-// En yakın oyuncuyu bul
-document.getElementById('nearestPlayerBtn')?.addEventListener('click', () => {
-  const command = `/coords en yakın`;
-  sendCommand(command);
+// GPS Sorgula
+document.getElementById('gpsBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('gpsTarget')?.value;
+  if (!target) return alert('Waypoint adı veya koordinat girin.');
+  sendCommand(`/gps ${target}`);
 });
 
-// Bir oyuncuya git (TPA + takip et)
-document.getElementById('goToPlayerBtn')?.addEventListener('click', () => {
-  const target = document.getElementById('goToTarget')?.value;
-  if (!target) return alert('Hedef oyuncu adı girin.');
-  const command = `/coords gel ${target}`;
-  sendCommand(command);
-});
-
-// Socket.io ile gelen oyuncu listesini güncelleme
-socket.on('playersUpdate', (players) => {
-  const list = document.getElementById('onlinePlayersList');
+// Socket.io ile koordinat kayıtlarını güncelleme
+socket.on('coordsLogUpdate', (data) => {
+  const list = document.getElementById('coordsLogsList');
   if (!list) return;
-  list.innerHTML = players.map(p => `<li>${p.name} - ${p.distance ? p.distance.toFixed(1) + ' blok' : 'Görüş alanında değil'}</li>`).join('');
+  list.innerHTML = data.slice(-10).map(l => 
+    `<li>${new Date(l.timestamp).toLocaleString()}: ${l.coords.join(', ')} - ${l.note} (${l.dimension})</li>`
+  ).join('');
 });
