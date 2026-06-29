@@ -29,7 +29,7 @@ config.aiProvider = process.env.AI_PROVIDER || 'openrouter';
 
 // OpenRouter ayarları
 config.openRouterApiKey = process.env.OPENROUTER_API_KEY;
-config.openRouterModel = process.env.OPENROUTER_MODEL || 'qwen/qwen-2.5-7b-instruct:free';
+config.openRouterModel = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free';
 
 // Groq ayarları (yedek)
 config.groqApiKey = process.env.GROQ_API_KEY;
