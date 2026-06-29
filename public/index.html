@@ -3,74 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Minecraft AI Bot Dashboard</title>
+  <title>Minecraft AI Bot</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <div id="app">
+    <!-- BAŞLIK -->
     <header>
       <h1>🤖 Minecraft AI Bot</h1>
-      <div id="status">🟢 Çevrimiçi</div>
+      <div id="status">⏳ Bağlanıyor...</div>
+      <button id="settingsBtn">⚙️ Ayarlar</button>
     </header>
-    
-    <main>
-      <div id="botInfo">
-        <h2>📊 Bot Durumu</h2>
-        <p>İsim: <span id="botName">-</span></p>
-        <p>Sunucu: <span id="serverInfo">-</span></p>
-        <p>Can: <span id="health">-</span></p>
-        <p>Açlık: <span id="food">-</span></p>
-        <p>Koordinat: <span id="coords">-</span></p>
+
+    <!-- AYARLAR MODAL'ı (başlangıçta gizli) -->
+    <div id="settingsModal" style="display:none;">
+      <div class="modal-content">
+        <h2>Bağlantı Ayarları</h2>
+        <label>Sunucu IP:</label>
+        <input type="text" id="serverHost" placeholder="örn: aesirmc.com" />
+        <label>Port:</label>
+        <input type="number" id="serverPort" placeholder="25565" />
+        <label>Minecraft Sürümü:</label>
+        <input type="text" id="serverVersion" placeholder="1.8.9" />
+        <label>Bot İsmi:</label>
+        <input type="text" id="botName" placeholder="BenimBot" />
+        <label>Auth Tipi:</label>
+        <select id="authType">
+          <option value="offline">Offline</option>
+          <option value="microsoft">Microsoft</option>
+        </select>
+        <button id="saveSettings">Kaydet ve Bağlan</button>
+        <button id="closeSettings">Kapat</button>
       </div>
-      
-      <div id="console">
+    </div>
+
+    <!-- ANA PANEL -->
+    <main>
+      <!-- Sol: Bot Durumu -->
+      <section id="botStatus">
+        <h2>📊 Bot Durumu</h2>
+        <p>İsim: <span id="botNameDisplay">-</span></p>
+        <p>Sunucu: <span id="serverDisplay">-</span></p>
+        <p>Can: <span id="healthDisplay">-</span></p>
+        <p>Açlık: <span id="foodDisplay">-</span></p>
+        <p>Koordinat: <span id="coordsDisplay">-</span></p>
+      </section>
+
+      <!-- Sağ: Konsol -->
+      <section id="consoleSection">
         <h2>📋 Konsol</h2>
         <div id="logContainer"></div>
         <div id="commandBox">
-          <input type="text" id="commandInput" placeholder="Doğal dil komut gönder...">
-          <button id="sendCommand">Gönder</button>
+          <input type="text" id="commandInput" placeholder="Doğal dil komut..." />
+          <button id="sendBtn">Gönder</button>
         </div>
-      </div>
-      
-      <div id="quickCommands">
+      </section>
+
+      <!-- Alt: Hızlı Komutlar -->
+      <section id="quickCommands">
         <h2>⚡ Hızlı Komutlar</h2>
-        <button class="quick-btn" data-command="explore">🔍 Keşfet</button>
-        <button class="quick-btn" data-command="explore durdur">⏹️ Keşfi Durdur</button>
-        <button class="quick-btn" data-command="branchMine 50 5 kuzey">⛏️ Elmas Ara</button>
-        <button class="quick-btn" data-command="branchMine durdur">⏹️ Kazmayı Durdur</button>
-        <button class="quick-btn" data-command="observe">👀 Gözlem Yap</button>
-        <button class="quick-btn" data-command="eat">🍖 Yemek Ye</button>
-      </div>
-      
-      <div id="waypointSection">
-        <h2>📍 Waypoint Yönetimi</h2>
-        <div>
-          <input type="text" id="wpName" placeholder="İsim">
-          <input type="number" id="wpX" placeholder="X" value="0">
-          <input type="number" id="wpY" placeholder="Y" value="64">
-          <input type="number" id="wpZ" placeholder="Z" value="0">
-          <button id="addWpBtn">Ekle</button>
-          <button id="saveCurrentBtn">Burayı Kaydet</button>
+        <button class="qbtn" data-cmd="explore">🔍 Keşfet</button>
+        <button class="qbtn" data-cmd="explore durdur">⏹️ Durdur</button>
+        <button class="qbtn" data-cmd="branchMine 50 5 kuzey">⛏️ Elmas Ara</button>
+        <button class="qbtn" data-cmd="branchMine durdur">⏹️ Kazmayı Durdur</button>
+        <button class="qbtn" data-cmd="observe">👀 Gözlem</button>
+        <button class="qbtn" data-cmd="eat">🍖 Yemek Ye</button>
+      </section>
+
+      <!-- Waypoint ve Keşif (liste) -->
+      <section id="listSection">
+        <div id="waypointList">
+          <h2>📍 Waypoint'ler</h2>
+          <ul id="wpList"></ul>
         </div>
-        <div>
-          <input type="text" id="wpGoName" placeholder="Waypoint adı">
-          <button id="goWpBtn">Git</button>
-          <button id="listWpBtn">Listele</button>
+        <div id="discoveryList">
+          <h2>🗺️ Keşfedilenler</h2>
+          <ul id="discList"></ul>
         </div>
-        <ul id="waypointList"></ul>
-      </div>
-      
-      <div id="discoveriesSection">
-        <h2>🗺️ Keşfedilen Yerler</h2>
-        <ul id="discoveriesList"></ul>
-      </div>
+      </section>
     </main>
-    
+
     <footer>
       <p>Minecraft AI Bot v2.0 | Powered by Groq</p>
     </footer>
   </div>
-  
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/script.js"></script>
 </body>
