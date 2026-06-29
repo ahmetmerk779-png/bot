@@ -15,14 +15,23 @@ const defaults = {
 function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
-      return { ...defaults, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) };
+      const data = fs.readFileSync(CONFIG_PATH, 'utf8');
+      return { ...defaults, ...JSON.parse(data) };
     }
-  } catch {}
+  } catch (err) {
+    console.error('Config okuma hatası:', err.message);
+  }
   return { ...defaults };
 }
 
-function saveConfig(data) {
-  fs.writeFileSync(CONFIG_PATH, JSON.stringify(data, null, 2));
+function saveConfig(newConfig) {
+  try {
+    fs.writeFileSync(CONFIG_PATH, JSON.stringify(newConfig, null, 2));
+    return true;
+  } catch (err) {
+    console.error('Config yazma hatası:', err.message);
+    return false;
+  }
 }
 
-module.exports = { loadConfig, saveConfig };
+module.exports = { loadConfig, saveConfig, defaults };
