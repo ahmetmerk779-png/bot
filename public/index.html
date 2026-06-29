@@ -1,35 +1,39 @@
-<!-- Ana dashboard içine ekle (waypoint bölümünün altına) -->
+<!-- Ana dashboard içine ekle -->
 <div id="coordsSection">
-  <h3>📍 Koordinat Paylaşma ve TPA</h3>
+  <h3>📍 Koordinat Paylaşım ve TPA</h3>
   
-  <div id="coordsBasic">
-    <button id="sayCoordsBtn">🗣️ Koordinatları Söyle</button>
+  <div id="coordsShare">
+    <h4>Koordinat Paylaş</h4>
+    <input type="text" id="shareTarget" placeholder="Oyuncu adı (opsiyonel)" />
+    <button id="shareCoordsBtn">Koordinatları Paylaş</button>
+    <button id="whereBtn">Konumumu Söyle</button>
   </div>
   
-  <div id="coordsMsg">
-    <h4>Koordinatları Oyuncuya Mesaj Gönder</h4>
-    <input type="text" id="coordsTarget" placeholder="Oyuncu adı" />
-    <button id="msgCoordsBtn">📨 Gönder</button>
-  </div>
-  
-  <div id="coordsTpa">
-    <h4>TPA İşlemleri</h4>
+  <div id="tpaSection">
+    <h4>TPA (Işınlanma)</h4>
     <input type="text" id="tpaTarget" placeholder="Oyuncu adı" />
-    <button id="tpaBtn">📩 TPA At</button>
-    <button id="tpacceptBtn">✅ Kabul Et</button>
-    <button id="tpdenyBtn">❌ Reddet</button>
+    <button id="tpaBtn">TPA At</button>
+    <button id="tpacceptBtn">Kabul Et</button>
+    <button id="tpdenyBtn">Reddet</button>
   </div>
   
-  <div id="coordsPlayers">
-    <h4>Oyuncu Bilgileri</h4>
-    <button id="listPlayersBtn">📋 Oyuncuları Listele</button>
-    <button id="nearestPlayerBtn">🎯 En Yakını Bul</button>
-    <ul id="onlinePlayersList"></ul>
+  <div id="nearbySection">
+    <h4>Yakındaki Oyuncular</h4>
+    <input type="number" id="nearbyRadius" placeholder="Yarıçap" value="50" />
+    <button id="nearbyBtn">Ara</button>
   </div>
   
-  <div id="coordsFollow">
-    <h4>Oyuncuya Git/Takip Et</h4>
-    <input type="text" id="goToTarget" placeholder="Oyuncu adı" />
-    <button id="goToPlayerBtn">🚶 Git ve Takip Et</button>
+  <div id="coordsLogSection">
+    <h4>Koordinat Kaydet</h4>
+    <input type="text" id="logNote" placeholder="Not (opsiyonel)" />
+    <button id="logCoordsBtn">Kaydet</button>
+    <button id="listLogsBtn">Kayıtları Listele</button>
+    <ul id="coordsLogsList"></ul>
   </div>
-</div>
+  
+  <div id="gpsSection">
+    <h4>GPS Navigasyon</h4>
+    <input type="text" id="gpsTarget" placeholder="Waypoint adı veya koordinat (örn: ev veya 100 64 200)" />
+    <button id="gpsBtn">Sorgula</button>
+  </div>
+      </div>
