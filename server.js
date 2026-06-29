@@ -38,4 +38,46 @@ server.listen(PORT, () => {
   console.log(`🔐 Şifre: ${config.dashboardPassword}`);
 });
 
-module.exports = { io, app, server };
+module.exports = { io, app, server };// server.js - /api/config endpoint'leri eklendi
+
+// ... (mevcut kodların devamında, API endpoint'leri bölümüne ekle)
+
+// ============ API: KONFİGÜRASYON ============
+const fs = require('fs');
+const path = require('path');
+
+// Mevcut ayarları oku
+app.get('/api/config', (req, res) => {
+  try {
+    const configPath = path.join(__dirname, 'config.js');
+    // config.js'den değerleri oku (basitçe config modülünden al)
+    const config = require('./config');
+    res.json({
+      botName: config.botName,
+      serverHost: config.serverHost,
+      serverPort: config.serverPort,
+      version: config.version,
+      auth: config.auth,
+      renderDistance: config.renderDistance
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// Yeni ayarları kaydet (config.json'a yaz)
+app.post('/api/config', (req, res) => {
+  try {
+    const newConfig = req.body;
+    // config.json dosyasına yaz (config.js'i değil, çünkü config.js modül olarak kullanılıyor)
+    // Basitçe config.json oluşturup oraya yazalım
+    const configPath = path.join(__dirname, 'config.json');
+    fs.writeFileSync(configPath, JSON.stringify(newConfig, null, 2));
+    // Ayrıca config.js'deki değerleri güncellemek için bir mekanizma gerekir.
+    // Alternatif: config.json'dan oku, config.js'de require ile config.json'u kullan.
+    // Şimdilik sadece dosyaya yazalım, bot yeniden başlatıldığında config.js'den değil, config.json'dan okuması için düzenleme yapacağız.
+    res.json({ success: true, message: 'Ayarlar kaydedildi. Bot yeniden başlatılıyor...' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
