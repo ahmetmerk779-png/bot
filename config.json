@@ -1,0 +1,8 @@
+{
+  "botName": "BenimAIBot",
+  "serverHost": "oyna.aesirmc.com",
+  "serverPort": 25565,
+  "version": "1.21.11",
+  "renderDistance": 10,
+  "auth": "offline"
+}
