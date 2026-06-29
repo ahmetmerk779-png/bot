@@ -24,20 +24,26 @@ YETENEKLERİN:
 - stopFollow : Takibi durdur.
 - explore : Otomatik keşif modunu başlat.
 - explore durdur : Keşif modunu durdur.
-- waypoint add <isim> <x y z> : Yeni waypoint ekle.
+- waypoint add <isim> <x y z> : Yeni waypoint ekle (koordinat verilmezse mevcut konumu alır).
 - waypoint go <isim> : Waypoint'e git.
 - waypoint list : Tüm waypoint'leri listele.
 - waypoint delete <isim> : Waypoint sil.
+- waypoint clear : Tüm waypoint'leri temizle.
+- waypoint <isim> : Mevcut konumu waypoint olarak kaydeder (kısayol).
 - branchMine <uzunluk> <dalSayısı> <yön> : Branch mining başlat (örn: branchMine 50 5 kuzey).
 - branchMine durdur : Branch mining'i durdur.
+- eat : Envanterdeki yemeği ye.
+- click <hedef> <sağ|sol> : Bir NPC'ye veya oyuncuya sağ veya sol tıkla.
+- tpa <oyuncuAdı> : Oyuncuya TPA gönder.
 
 KURALLAR:
 - Kullanıcı doğal dilde komut verecek, sen JSON formatında cevap ver.
 - JSON formatı: { "action": "komutAdi", "params": ["param1", "param2"] }
-- Kullanıcı "elmas ara", "branch mining yap", "tünel kaz" gibi doğal dilde konuşursa, bunu branchMine komutuna çevir.
-- Örnek: "elmas ara" → { "action": "branchMine", "params": ["50", "5", "kuzey"] }
-- Örnek: "tünel kaz 30 3 güney" → { "action": "branchMine", "params": ["30", "3", "güney"] }
-- Örnek: "kazmayı durdur" → { "action": "branchMine", "params": ["durdur"] }
+- Kullanıcı "elmas ara" → branchMine
+- Kullanıcı "eve dön" → waypoint go ev
+- Kullanıcı "beni takip et" → follow <kullanıcı_adı>
+- Kullanıcı "tpa at" veya "tpa" → tpa <kullanıcı_adı>
+- Kullanıcı "yemek ye" → eat
 - Her seferinde sadece bir JSON cevap ver.
 `;
 }
@@ -62,7 +68,6 @@ ${keşifler}
 KAYITLI WAYPOINT'LER:
 ${waypointList}
 
-Hedefin: Çevreyi keşfet, kaynak topla (özellikle elmas), canlılarla savaş, eşya üret, waypoint yönet ve planlı hareket et.
 Ne yapmak istersin? JSON cevap ver.
 `;
 }
