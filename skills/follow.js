@@ -1,47 +1,65 @@
+// skills/follow.js - Oyuncu takip etme
 let following = false;
 let followTarget = null;
+let followInterval = null;
 
 async function execute(bot, params) {
   const playerName = params[0];
   
-  if (params[0] === 'durdur' || params[0] === 'stop') {
-    following = false;
-    bot.chat('Takip durduruldu.');
-    return 'Takip durduruldu.';
+  if (!playerName || playerName === 'durdur' || playerName === 'stop') {
+    if (following) {
+      following = false;
+      followTarget = null;
+      if (followInterval) {
+        clearInterval(followInterval);
+        followInterval = null;
+      }
+      bot.chat('Takip durduruldu.');
+      return 'Takip durduruldu.';
+    }
+    return 'Zaten takip yok.';
   }
 
-  if (!playerName) return 'Takip edilecek oyuncu adı belirtilmedi.';
-  
   const target = bot.players[playerName]?.entity;
-  if (!target) return `${playerName} bulunamadı.`;
+  if (!target) {
+    bot.chat(`${playerName} bulunamadı.`);
+    return `${playerName} bulunamadı.`;
+  }
 
   following = true;
   followTarget = playerName;
   bot.chat(`👤 ${playerName} takip ediliyor...`);
-  
-  followLoop(bot);
-  return `${playerName} takip başlatıldı.`;
-}
 
-async function followLoop(bot) {
-  while (following && followTarget) {
+  if (followInterval) {
+    clearInterval(followInterval);
+  }
+
+  followInterval = setInterval(async () => {
+    if (!following || !bot || !bot.entity) {
+      clearInterval(followInterval);
+      followInterval = null;
+      return;
+    }
     try {
-      const target = bot.players[followTarget]?.entity;
-      if (!target) {
-        bot.chat(`⚠️ ${followTarget} kayboldu, takip durduruldu.`);
+      const targetEntity = bot.players[followTarget]?.entity;
+      if (!targetEntity) {
+        bot.chat(`${followTarget} kayboldu, takip durduruldu.`);
         following = false;
-        break;
+        followTarget = null;
+        clearInterval(followInterval);
+        followInterval = null;
+        return;
       }
-      const distance = bot.entity.position.distanceTo(target.position);
-      if (distance > 5) {
-        await bot.pathfinder.goto(target.position);
+      const distance = bot.entity.position.distanceTo(targetEntity.position);
+      if (distance > 3) {
+        await bot.pathfinder.goto(targetEntity.position);
       }
-      await new Promise(resolve => setTimeout(resolve, 1000));
     } catch (err) {
       console.error('Takip hatası:', err.message);
-      await new Promise(resolve => setTimeout(resolve, 3000));
     }
-  }
+  }, 1000);
+
+  return `${playerName} takip ediliyor.`;
 }
 
 module.exports = { execute };
