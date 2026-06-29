@@ -1,4 +1,4 @@
-#coordsSection {
+#branchMineSection {
   background: #1a1a2e;
   padding: 15px;
   border-radius: 8px;
@@ -6,24 +6,24 @@
   border: 1px solid #2a2a4e;
 }
 
-#coordsSection h3 {
-  color: #ffd700;
+#branchMineSection h3 {
+  color: #ff6b35;
   margin-bottom: 10px;
 }
 
-#coordsSection input {
+#branchMineSection input, #branchMineSection select {
   background: #0d0d1a;
   color: #e0e0e0;
   border: 1px solid #2a2a4e;
   padding: 5px 10px;
   border-radius: 4px;
   margin: 5px;
-  width: 150px;
+  width: 100px;
 }
 
-#coordsSection button {
-  background: #2a2a4e;
-  color: #e0e0e0;
+#branchMineSection button {
+  background: #ff6b35;
+  color: #ffffff;
   border: none;
   padding: 5px 15px;
   border-radius: 4px;
@@ -31,21 +31,23 @@
   margin: 5px;
 }
 
-#coordsSection button:hover {
-  background: #3a3a6e;
+#branchMineSection button:hover {
+  background: #ff8c5a;
 }
 
-#coordsLogsList {
-  list-style: none;
-  padding: 0;
-  max-height: 150px;
-  overflow-y: auto;
-}
-
-#coordsLogsList li {
+#branchMineSection .progress-bar-container {
+  width: 100%;
   background: #0d0d1a;
-  padding: 5px 10px;
-  margin: 3px 0;
   border-radius: 4px;
-  border-left: 3px solid #ffd700;
+  overflow: hidden;
+  margin: 10px 0;
+}
+
+#branchMineSection .progress-bar {
+  height: 20px;
+  background: linear-gradient(90deg, #ff6b35, #ff8c5a);
+  text-align: center;
+  color: white;
+  line-height: 20px;
+  transition: width 0.5s ease;
 }
