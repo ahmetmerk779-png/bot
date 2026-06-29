@@ -1,7 +1,6 @@
-// index.js - Ana bot dosyası (3D Viewer ile)
+// index.js - Ana bot dosyası (2D radar ile)
 require('dotenv').config();
 const mineflayer = require('mineflayer');
-const { mineflayer: mineflayerViewer } = require('prismarine-viewer');
 const config = require('./config');
 const { loadMemory, addEvent, addKnowledge } = require('./memory/memoryManager');
 const { buildSystemPrompt, buildUserPrompt } = require('./ai/prompt');
@@ -17,7 +16,7 @@ let bot = null;
 let memory = loadMemory();
 let isConnected = false;
 let reconnectAttempts = 0;
-const MAX_RECONNECT_ATTEMPTS = 500000;
+const MAX_RECONNECT_ATTEMPTS = 5;
 
 // ============ BOT OLUŞTUR ============
 function createBot() {
@@ -49,20 +48,25 @@ function createBot() {
   });
 
   bot.once('spawn', () => {
-    console.log('Bot spawn oldu, 3D viewer başlatılıyor...');
+    console.log('Bot spawn oldu, radar başlatılıyor...');
     addEvent(memory, 'Bot spawn oldu.');
-    try {
-      mineflayerViewer(bot, {
-        port: config.port || 3000,
-        firstPerson: false,  // false = üçüncü şahıs, true = botun gözünden
-        viewDistance: 6
-      });
-      console.log('✅ 3D Viewer başlatıldı!');
-      io.emit('log', { type: 'sistem', message: '🎮 3D Viewer aktif!' });
-    } catch (err) {
-      console.error('Viewer hatası:', err.message);
-      io.emit('log', { type: 'hata', message: `❌ Viewer hatası: ${err.message}` });
-    }
+    io.emit('log', { type: 'sistem', message: '🎯 Radar aktif!' });
+    
+    // Her saniye radar verisi gönder
+    setInterval(() => {
+      if (!isConnected) return;
+      const entities = Object.values(bot.entities)
+        .filter(e => e !== bot.entity) // bot'u hariç tut
+        .map(e => ({
+          name: e.username || e.name || '?',
+          type: e.type,
+          distance: bot.entity.position.distanceTo(e.position),
+          x: e.position.x - bot.entity.position.x,
+          z: e.position.z - bot.entity.position.z,
+          health: e.health || 0
+        }));
+      io.emit('radarData', entities);
+    }, 1000);
   });
 
   bot.on('error', (err) => {
