@@ -19,7 +19,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ============ ŞİFRE KORUMASI ============
 app.use((req, res, next) => {
-  const publicPaths = ['/login', '/css', '/js', '/images', '/favicon.ico'];
+  const publicPaths = ['/login', '/css', '/js', '/images', '/favicon.ico', '/viewer'];
   if (publicPaths.some(p => req.path.startsWith(p))) {
     return next();
   }
@@ -73,8 +73,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============ API: KONFİGÜRASYON (BAĞLANMA HATASI ÇÖZÜMÜ) ============
-// Mevcut ayarları oku
+// ============ API: KONFİGÜRASYON ============
 app.get('/api/config', (req, res) => {
   try {
     res.json({
@@ -90,7 +89,6 @@ app.get('/api/config', (req, res) => {
   }
 });
 
-// Yeni ayarları kaydet (config.json'a yaz)
 app.post('/api/config', (req, res) => {
   try {
     const newConfig = req.body;
