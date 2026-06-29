@@ -1,51 +1,62 @@
 // Mevcut socket.io bağlantısı ve diğer fonksiyonlar...
 
-// 1. Konum Paylaşma
-document.getElementById('shareLocationBtn')?.addEventListener('click', () => {
-  const target = document.getElementById('shareLocationTarget')?.value;
-  const command = `/shareLocation konum ${target}`.trim();
+// Koordinatları söyle
+document.getElementById('sayCoordsBtn')?.addEventListener('click', () => {
+  const command = `/coords söyle`;
   sendCommand(command);
 });
 
-// 2. Neredesin?
-document.getElementById('whereBtn')?.addEventListener('click', () => {
-  const target = document.getElementById('whereTarget')?.value;
-  const command = `/shareLocation nerede ${target}`.trim();
+// Koordinatları bir oyuncuya mesaj olarak gönder
+document.getElementById('msgCoordsBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('coordsTarget')?.value;
+  if (!target) return alert('Hedef oyuncu adı girin.');
+  const command = `/coords mesaj ${target}`;
   sendCommand(command);
 });
 
-// 3. TPA At
+// TPA isteği gönder
 document.getElementById('tpaBtn')?.addEventListener('click', () => {
   const target = document.getElementById('tpaTarget')?.value;
-  if (!target) return alert('Oyuncu adı girin.');
-  const command = `/shareLocation tpa ${target}`;
+  if (!target) return alert('Hedef oyuncu adı girin.');
+  const command = `/coords tpa ${target}`;
   sendCommand(command);
 });
 
-// 4. TPA Kabul
+// TPA kabul et
 document.getElementById('tpacceptBtn')?.addEventListener('click', () => {
-  const command = `/shareLocation tpaccept`;
+  const command = `/coords tpaccept`;
   sendCommand(command);
 });
 
-// 5. TPA Reddet
-document.getElementById('tpadenyBtn')?.addEventListener('click', () => {
-  const command = `/shareLocation tpadeny`;
+// TPA reddet
+document.getElementById('tpdenyBtn')?.addEventListener('click', () => {
+  const command = `/coords tpdeny`;
   sendCommand(command);
 });
 
-// 6. Çağır (Bana gel)
-document.getElementById('callBtn')?.addEventListener('click', () => {
-  const target = document.getElementById('callTarget')?.value;
-  if (!target) return alert('Oyuncu adı girin.');
-  const command = `/shareLocation çağır ${target}`;
+// Oyuncuları listele
+document.getElementById('listPlayersBtn')?.addEventListener('click', () => {
+  const command = `/coords oyuncular`;
   sendCommand(command);
 });
 
-// 7. Waypoint konumu paylaş
-document.getElementById('shareWaypointBtn')?.addEventListener('click', () => {
-  const wpName = document.getElementById('shareWaypointName')?.value;
-  if (!wpName) return alert('Waypoint adı girin.');
-  const command = `/shareLocation waypoint ${wpName}`;
+// En yakın oyuncuyu bul
+document.getElementById('nearestPlayerBtn')?.addEventListener('click', () => {
+  const command = `/coords en yakın`;
   sendCommand(command);
+});
+
+// Bir oyuncuya git (TPA + takip et)
+document.getElementById('goToPlayerBtn')?.addEventListener('click', () => {
+  const target = document.getElementById('goToTarget')?.value;
+  if (!target) return alert('Hedef oyuncu adı girin.');
+  const command = `/coords gel ${target}`;
+  sendCommand(command);
+});
+
+// Socket.io ile gelen oyuncu listesini güncelleme
+socket.on('playersUpdate', (players) => {
+  const list = document.getElementById('onlinePlayersList');
+  if (!list) return;
+  list.innerHTML = players.map(p => `<li>${p.name} - ${p.distance ? p.distance.toFixed(1) + ' blok' : 'Görüş alanında değil'}</li>`).join('');
 });
