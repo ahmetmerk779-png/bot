@@ -1,12 +1,32 @@
 <!-- Ana dashboard içine ekle -->
-<div id="exploreSection">
-  <h3>🧭 Keşif Modu</h3>
-  <button id="exploreBtn">Keşfet</button>
-  <button id="stopExploreBtn">Durdur</button>
-  <div id="exploreStatus">Keşif durumu: Pasif</div>
-</div>
-
-<div id="discoveriesSection">
-  <h4>📍 Keşfedilen Yerler</h4>
-  <ul id="discoveriesList"></ul>
+<div id="waypointSection">
+  <h3>📍 Yol Noktaları (Waypoint)</h3>
+  
+  <div id="waypointAdd">
+    <h4>Yeni Waypoint Ekle</h4>
+    <input type="text" id="waypointName" placeholder="Waypoint adı (örn: ev)" />
+    <input type="number" id="waypointX" placeholder="X" value="0" />
+    <input type="number" id="waypointY" placeholder="Y" value="64" />
+    <input type="number" id="waypointZ" placeholder="Z" value="0" />
+    <button id="addWaypointBtn">Ekle</button>
+    <button id="saveCurrentPosBtn">Mevcut Konumu Kaydet</button>
+  </div>
+  
+  <div id="waypointGo">
+    <h4>Waypoint'e Git</h4>
+    <input type="text" id="waypointGoName" placeholder="Waypoint adı" />
+    <button id="goWaypointBtn">Git</button>
+    <button id="listWaypointsBtn">Listele</button>
+  </div>
+  
+  <div id="waypointDelete">
+    <h4>Waypoint Sil</h4>
+    <input type="text" id="waypointDeleteName" placeholder="Waypoint adı" />
+    <button id="deleteWaypointBtn">Sil</button>
+  </div>
+  
+  <div id="waypointList">
+    <h4>📋 Kayıtlı Waypoint'ler</h4>
+    <ul id="waypointsList"></ul>
+  </div>
 </div>
