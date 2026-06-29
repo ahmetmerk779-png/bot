@@ -6,7 +6,7 @@ const useCraftingTable = require('./useCraftingTable');
 const observe = require('./observe');
 const explore = require('./explore');
 const waypoint = require('./waypoint');
-const coords = require('./coords');   // YENİ
+const share = require('./share');      // YENİ
 const plan = require('./plan');
 
 module.exports = {
@@ -18,6 +18,6 @@ module.exports = {
   observe,
   explore,
   waypoint,
-  coords,    // YENİ
+  share,       // YENİ
   plan
 };
