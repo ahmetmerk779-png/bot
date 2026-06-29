@@ -6,7 +6,7 @@ const useCraftingTable = require('./useCraftingTable');
 const observe = require('./observe');
 const explore = require('./explore');
 const waypoint = require('./waypoint');
-const share = require('./share');      // YENİ
+const branchMine = require('./branchMine');   // YENİ
 const plan = require('./plan');
 
 module.exports = {
@@ -18,6 +18,6 @@ module.exports = {
   observe,
   explore,
   waypoint,
-  share,       // YENİ
+  branchMine,    // YENİ
   plan
 };
