@@ -1,86 +1,88 @@
 const mineflayer = require('mineflayer');
-const { pathfinder, Movements, goals } = require('mineflayer-pathfinder');
-const collectBlock = require('mineflayer-collectblock');
+const { pathfinder } = require('mineflayer-pathfinder');
 const express = require('express');
-
 const app = express();
+
 app.use(express.urlencoded({ extended: true }));
 
-const bots = new Map(); // Aktif botlar listesi
+let bot = null;
+let botConfig = { name: 'Bot', host: 'aesirmc.com', port: 25565, pass: '' };
+let status = "Beklemede...";
 
-function createBot(username, host, port, autoCommands) {
-    const bot = mineflayer.createBot({ host, port: parseInt(port), username, version: '1.21.1' });
+// --- BOT İŞLEMLERİ ---
+function startBot() {
+    status = "Bağlanılıyor...";
+    bot = mineflayer.createBot({
+        host: botConfig.host,
+        port: parseInt(botConfig.port),
+        username: botConfig.name,
+        version: '1.21.1'
+    });
+
     bot.loadPlugin(pathfinder);
-    bot.loadPlugin(collectBlock);
-
-    bots.set(username, bot);
 
     bot.on('login', () => {
-        console.log(`${username} sunucuya girdi!`);
-        // Otomatik komutları bekle ve çalıştır
-        if (autoCommands) {
-            const cmds = autoCommands.split(',');
-            cmds.forEach((cmd, i) => {
-                setTimeout(() => bot.chat(cmd.trim()), i * 1500); // 1.5 saniye arayla
-            });
+        status = "🟢 ONLINE";
+        if (botConfig.pass) {
+            setTimeout(() => bot.chat('/login ' + botConfig.pass), 2000);
         }
     });
 
-    bot.on('end', () => bots.delete(username));
-    return bot;
-}
-
-// WEB PANELİ
-app.get('/', (req, res) => {
-    let botListHtml = '';
-    bots.forEach((bot, name) => {
-        botListHtml += `
-            <div style="border:1px solid #ccc; padding:10px; margin:5px;">
-                <strong>${name}</strong> aktif. 
-                <form action="/run" method="POST" style="display:inline">
-                    <input type="hidden" name="name" value="${name}">
-                    <input name="cmd" placeholder="Komut yaz (örn: /warp)" required>
-                    <button type="submit">Gönder</button>
-                </form>
-                <form action="/quit" method="POST" style="display:inline">
-                    <input type="hidden" name="name" value="${name}">
-                    <button>Kapat</button>
-                </form>
-            </div>`;
+    bot.on('end', () => {
+        status = "🔴 DÜŞTÜ - 10sn sonra bağlanılıyor...";
+        setTimeout(startBot, 10000);
     });
 
+    bot.on('chat', (username, message) => {
+        if (username === bot.username) return;
+        
+        // !npc komutu (Chat üzerinden)
+        if (message.startsWith('!npc ')) {
+            const npcName = message.split('!npc ')[1];
+            const npc = Object.values(bot.entities).find(e => 
+                e.type === 'player' && e.username.toLowerCase().includes(npcName.toLowerCase())
+            );
+            if (npc) {
+                bot.lookAt(npc.position.offset(0, npc.height / 2, 0));
+                bot.activateEntity(npc);
+                bot.chat(`${npc.username} NPC'sine tıklandı.`);
+            } else {
+                bot.chat("NPC bulunamadı.");
+            }
+        }
+    });
+}
+
+// --- WEB PANELİ (KONSOL) ---
+app.get('/', (req, res) => {
     res.send(`
-        <h3>AesirMC Bot Kontrol Merkezi</h3>
-        <form action="/spawn" method="POST">
-            <input name="name" placeholder="Bot İsmi" required>
-            <input name="ip" placeholder="Server IP" value="aesirmc.com" required>
-            <input name="port" value="25565" required>
-            <input name="auto" placeholder="Oto Komutlar (virgülle ayır: /login 123, /kit)" style="width:300px">
-            <button type="submit">Botu Sok</button>
+        <h3>Bot Kontrol Merkezi</h3>
+        <p>Durum: <b>${status}</b></p>
+        <form action="/start" method="POST">
+            <input name="name" value="${botConfig.name}" placeholder="Bot İsmi">
+            <input name="pass" placeholder="Şifre">
+            <button type="submit">Botu Başlat</button>
         </form>
         <hr>
-        ${botListHtml || 'Şu an aktif bot yok.'}
+        <form action="/run" method="POST">
+            <input name="cmd" placeholder="Komut (örn: /warp)" required>
+            <button type="submit">Komut Gönder</button>
+        </form>
+        <p>Chatten komut: <b>!npc [isim]</b></p>
     `);
 });
 
-// Bot Spawn
-app.post('/spawn', (req, res) => {
-    createBot(req.body.name, req.body.ip, req.body.port, req.body.auto);
+app.post('/start', (req, res) => {
+    botConfig.name = req.body.name;
+    botConfig.pass = req.body.pass;
+    if (bot) bot.quit();
+    startBot();
     res.redirect('/');
 });
 
-// Komut Gönder
 app.post('/run', (req, res) => {
-    const bot = bots.get(req.body.name);
     if (bot) bot.chat(req.body.cmd);
     res.redirect('/');
 });
 
-// Bot Kapat
-app.post('/quit', (req, res) => {
-    const bot = bots.get(req.body.name);
-    if (bot) bot.quit();
-    res.redirect('/');
-});
-
-app.listen(process.env.PORT || 3000);
+app.listen(process.env.PORT || 3000, () => console.log("Web Paneli Aktif!"));
