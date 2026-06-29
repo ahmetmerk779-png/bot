@@ -29,9 +29,7 @@ config.aiProvider = process.env.AI_PROVIDER || 'openrouter';
 
 // OpenRouter ayarları
 config.openRouterApiKey = process.env.OPENROUTER_API_KEY;
-config.openRouterModel = process.env.OPENROUTER_MODEL || 'nvidia/nemotron-3-ultra-550b-a55b:free';
-
-// Groq ayarları (yedek)
+config.openRouterModel = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free'// Groq ayarları (yedek)
 config.groqApiKey = process.env.GROQ_API_KEY;
 config.groqModel = process.env.GROQ_MODEL || 'llama-3.1-70b-versatile';
 config.groqUrl = 'https://api.groq.com/openai/v1/chat/completions';
