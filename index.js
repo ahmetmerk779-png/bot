@@ -62,7 +62,8 @@ function createBot() {
       console.error('Maksimum yeniden bağlanma denemesine ulaşıldı.');
       addEvent(memory, 'Maksimum yeniden bağlanma denemesine ulaşıldı.');
     }
-  });
+  });// index.js en sonuna ekle
+require('./server');
 
   bot.on('whisper', (username, message) => {
     console.log(`[ÖZEL] ${username}: ${message}`);
