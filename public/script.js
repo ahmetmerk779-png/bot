@@ -4,8 +4,6 @@ const socket = io();
 const logContainer = document.getElementById('logContainer');
 const commandInput = document.getElementById('commandInput');
 const sendBtn = document.getElementById('sendCommand');
-const radarCanvas = document.getElementById('radarCanvas');
-const ctx = radarCanvas.getContext('2d');
 
 // Durum
 const botName = document.getElementById('botName');
@@ -182,89 +180,6 @@ async function loadConfig() {
   }
 }
 
-// ============ RADAR ÇİZİMİ ============
-function drawRadar(entities) {
-  const w = radarCanvas.width;
-  const h = radarCanvas.height;
-  const centerX = w/2;
-  const centerY = h/2;
-  const radius = Math.min(w, h) / 2 - 20;
-
-  ctx.clearRect(0, 0, w, h);
-
-  // Arka plan
-  const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
-  gradient.addColorStop(0, '#1a2a3a');
-  gradient.addColorStop(1, '#0a0a1a');
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-  ctx.fill();
-
-  // Halkalar
-  ctx.strokeStyle = '#2a4a5a';
-  ctx.lineWidth = 1;
-  for (let r = radius / 4; r < radius; r += radius / 4) {
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
-    ctx.stroke();
-  }
-
-  // Merkez çizgileri
-  ctx.strokeStyle = '#2a4a5a';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(centerX - radius, centerY);
-  ctx.lineTo(centerX + radius, centerY);
-  ctx.moveTo(centerX, centerY - radius);
-  ctx.lineTo(centerX, centerY + radius);
-  ctx.stroke();
-
-  // Merkezde bot
-  ctx.fillStyle = '#00d4ff';
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, 6, 0, 2 * Math.PI);
-  ctx.fill();
-  ctx.fillStyle = '#fff';
-  ctx.font = '10px Arial';
-  ctx.textAlign = 'center';
-  ctx.fillText('Bot', centerX, centerY - 12);
-
-  // Varlıkları çiz
-  entities.forEach(e => {
-    const dist = e.distance;
-    if (dist > 30) return; // 30 blok ötesini gösterme
-    const angle = Math.atan2(e.z, e.x);
-    const r = (dist / 30) * radius;
-    const x = centerX + Math.sin(angle) * r;
-    const y = centerY - Math.cos(angle) * r;
-
-    let color = '#888';
-    let label = e.name;
-    if (e.type === 'player') { color = '#44ff88'; label = `👤 ${e.name}`; }
-    else if (e.type === 'mob') {
-      if (e.name === 'zombie' || e.name === 'skeleton' || e.name === 'spider' || e.name === 'creeper') {
-        color = '#ff4444';
-        label = `💀 ${e.name}`;
-      } else {
-        color = '#ffcc44';
-        label = `🐄 ${e.name}`;
-      }
-    }
-
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
-    ctx.fill();
-
-    // Üzerine gelince isim göster
-    ctx.fillStyle = '#fff';
-    ctx.font = '8px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText(label, x, y - 10);
-  });
-}
-
 // ============ SOCKET OLAYLARI ============
 socket.on('log', (data) => {
   addLog(data.type, data.message);
@@ -276,10 +191,6 @@ socket.on('botStatus', (data) => {
   if (data.health !== undefined) health.textContent = data.health;
   if (data.food !== undefined) food.textContent = data.food;
   if (data.coords) coords.textContent = data.coords;
-});
-
-socket.on('radarData', (data) => {
-  drawRadar(data);
 });
 
 socket.on('waypointsUpdate', (data) => {
