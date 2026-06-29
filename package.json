@@ -1,13 +1,11 @@
 {
-  "name": "aesir-bot",
+  "name": "aesir-bot-final",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
-    "express": "latest",
     "mineflayer": "latest",
     "mineflayer-pathfinder": "latest",
     "mineflayer-collectblock": "latest",
-    "vec3": "latest",
-    "openai": "latest"
+    "express": "latest"
   }
 }
