@@ -1,63 +1,53 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a1a; color: #e0e0e0; font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; }
-#app { max-width: 1400px; margin: 0 auto; }
+#app { max-width: 1200px; margin: 0 auto; }
 
-header {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 15px 20px; background: #1a1a2e; border-radius: 10px;
-  margin-bottom: 20px; border: 1px solid #2a2a4e;
-}
+header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #1a1a2e; border-radius: 10px; margin-bottom: 20px; border: 1px solid #2a2a4e; }
 header h1 { color: #00d4ff; }
 #status { padding: 5px 15px; border-radius: 20px; background: #00ff8844; color: #00ff88; border: 1px solid #00ff88; }
 
-#settings-panel, #botInfo, #radarContainer, #inventoryContainer, #console, #quickCommands, #historyContainer, #discoveriesContainer {
+#settings-panel, #botInfo, #radarContainer, #inventoryContainer, #console, #quickCommands {
   background: #1a1a2e; padding: 15px; border-radius: 10px; border: 1px solid #2a2a4e; margin-bottom: 15px;
 }
 h2 { font-size: 18px; color: #00d4ff; margin-bottom: 10px; }
 
 #settings-panel input, #settings-panel select {
-  background: #0d0d1a; border: 1px solid #2a2a4e; padding: 8px 12px;
-  border-radius: 5px; color: #e0e0e0; margin: 5px; width: 150px;
+  background: #0d0d1a; border: 1px solid #2a2a4e; padding: 8px 12px; border-radius: 5px; color: #e0e0e0; margin: 5px; width: 150px;
 }
 #settings-panel button { background: #00d4ff; border: none; padding: 8px 20px; border-radius: 5px; color: #000; font-weight: bold; cursor: pointer; }
 
 #botInfo p { margin: 5px 0; color: #b0b0d0; }
-#botInfo span { color: #ffffff; font-weight: bold; }
+#botInfo span { color: #fff; font-weight: bold; }
 
-#radarCanvas { background: #0a0a1a; border-radius: 50%; border: 2px solid #2a4a5a; width: 100%; max-width: 400px; height: auto; aspect-ratio: 1/1; }
+#radarCanvas { background: #0a0a1a; border-radius: 50%; border: 2px solid #2a4a5a; width: 100%; max-width: 300px; height: auto; aspect-ratio: 1/1; }
 #radarLegend { font-size: 12px; color: #888; margin-top: 5px; }
 
-#inventoryList { display: flex; flex-wrap: wrap; gap: 10px; }
-.inventory-item { background: #0d0d1a; padding: 8px 12px; border-radius: 5px; border-left: 3px solid #00d4ff; }
+#inventoryList { list-style: none; padding: 0; max-height: 150px; overflow-y: auto; }
+#inventoryList li { padding: 3px 10px; background: #0d0d1a; border-radius: 4px; margin: 3px 0; border-left: 3px solid #00d4ff; }
 
-#logContainer {
-  height: 300px; overflow-y: auto; background: #0d0d1a; border-radius: 5px; padding: 10px;
-  font-family: 'Consolas', monospace; font-size: 13px; margin-bottom: 10px;
-}
-.log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
-.log-entry .time { color: #666; margin-right: 10px; }
-.type-sistem { color: #00d4ff; }
-.type-komut { color: #ffaa00; }
-.type-ai { color: #aa66ff; }
-.type-hata { color: #ff4444; }
-.type-bot { color: #44ff88; }
-.type-sohbet { color: #ffcc44; }
+#logContainer { height: 250px; overflow-y: auto; background: #0d0d1a; border-radius: 5px; padding: 10px; font-family: 'Consolas', monospace; font-size: 13px; margin-bottom: 10px; }
+#logContainer .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
+#logContainer .log-entry .time { color: #666; margin-right: 10px; }
+#logContainer .log-entry .type-sistem { color: #00d4ff; }
+#logContainer .log-entry .type-komut { color: #ffaa00; }
+#logContainer .log-entry .type-ai { color: #aa66ff; }
+#logContainer .log-entry .type-hata { color: #ff4444; }
+#logContainer .log-entry .type-bot { color: #44ff88; }
+#logContainer .log-entry .type-sohbet { color: #ffcc44; }
 
 #commandBox { display: flex; gap: 10px; }
 #commandInput { flex: 1; padding: 10px; background: #0d0d1a; border: 1px solid #2a2a4e; border-radius: 5px; color: #e0e0e0; }
 #commandInput:focus { outline: none; border-color: #00d4ff; }
 
-button, #sendCommand { padding: 8px 15px; background: #2a2a4e; border: none; border-radius: 5px; color: #e0e0e0; cursor: pointer; }
+button, #sendCommand { padding: 8px 15px; background: #2a2a4e; border: none; border-radius: 5px; color: #e0e0e0; cursor: pointer; transition: background 0.3s; }
 button:hover, #sendCommand:hover { background: #3a3a6e; }
 
 #addQuickCommand { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
 #addQuickCommand input { padding: 8px 12px; background: #0d0d1a; border: 1px solid #2a2a4e; border-radius: 5px; color: #e0e0e0; flex: 1; min-width: 120px; }
-#addQuickCommand button { background: #00d4ff; color: #000; font-weight: bold; }
+#addQuickCommand button { padding: 8px 15px; background: #00d4ff; border: none; border-radius: 5px; color: #000; font-weight: bold; cursor: pointer; }
 #quickCommandsList { display: flex; flex-wrap: wrap; gap: 5px; }
 .quick-btn { padding: 8px 15px; background: #2a2a4e; border: 1px solid #3a3a6e; border-radius: 5px; color: #e0e0e0; cursor: pointer; }
-.quick-btn:hover { background: #3a3a6e; }
+.quick-btn:hover { background: #3a3a6e; transform: scale(1.05); }
+.delete-quick-btn { margin-left: 5px; padding: 2px 6px; font-size: 12px; background: #ff4444; color: #fff; border: none; border-radius: 50%; cursor: pointer; }
 
-#historyList, #discoveriesList { max-height: 200px; overflow-y: auto; }
-.history-item, .discovery-item { background: #0d0d1a; padding: 5px 10px; margin: 3px 0; border-radius: 4px; border-left: 3px solid #00d4ff; }
-
-footer { text-align: center; color: #666; padding: 10px; margin-top: 20px; }
+footer { margin-top: 20px; text-align: center; color: #666; padding: 10px; }
