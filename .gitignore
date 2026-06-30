@@ -1,7 +1,0 @@
-node_modules/
-.env
-logs/
-*.log
-memory/discoveries.json
-memory/waypoints.json
-memory/memory.json
