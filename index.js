@@ -1,97 +1,60 @@
-import mineflayer from 'mineflayer';
-import { pathfinder } from 'mineflayer-pathfinder';
-import Movements from 'mineflayer-pathfinder';
-import { loadConfig } from './config.js';
-import { io } from './server.js';
-import { askAI } from './ai.js';
-import { sleep, logToFile, readFromFile } from './utils.js';
-import fs from 'fs';
+// index.js - Ana Bot
+require('dotenv').config();
+const mineflayer = require('mineflayer');
+const pathfinder = require('mineflayer-pathfinder').pathfinder;
+const Movements = require('mineflayer-pathfinder').Movements;
+const { loadConfig } = require('./config');
+const { io } = require('./server');
+const axios = require('axios');
 
-// ============ AYARLAR ============
-let config = loadConfig();
 let bot = null;
-let isConnected = false;
+let config = loadConfig();
 let reconnectAttempts = 0;
 const MAX_RECONNECT = 10;
 let isFollowing = false;
 let followTarget = null;
 let followInterval = null;
-let isExploring = false;
-let exploreInterval = null;
-let isBranchMining = false;
-let branchMineData = null;
-let autoRules = [];
-let quickCommands = [];
+let loginDone = false;
+let afkInterval = null;
 
-// ============ HAFIZA ============
-let memory = { events: [], knowledge: [] };
-const MEMORY_FILE = './data/memory.json';
-
-function loadMemory() {
+// ============ AI SORGU (Mistral) ============
+async function askAI(prompt) {
   try {
-    if (fs.existsSync(MEMORY_FILE)) {
-      memory = JSON.parse(fs.readFileSync(MEMORY_FILE, 'utf8'));
-    }
-  } catch {}
+    const response = await axios.post(
+      'https://api.mistral.ai/v1/chat/completions',
+      {
+        model: 'mistral-small-latest',
+        messages: [
+          { role: 'system', content: `Sen Minecraft'ta yaşayan bir yapay zeka ajanısın.
+          Yeteneklerin: move, mine, combat, chat, follow, stopFollow, eat, observe, craft, use, equip.
+          Sunucu komutları: /lobby, /spawn, /hub, /tpa, /tpaccept, /home, /sethome, /delhome, /warp, /kit, /shop, /market, /bal, /pay, /trade, /duel, /party, /guild, /f, /friend, /msg, /r, /ignore, /list, /ping, /stats, /rank, /level, /exp, /quest, /mission, /achievement, /claim, /daily, /vote, /store, /discord, /website, /rules, /help.
+          Özel GUI: AesirMC'de NPC "ASMP" ye tıkla, End Crystal butonuna tıkla.
+          Kullanıcı doğal dilde komut verecek. JSON formatında cevap ver: {"action": "komut", "params": ["param"]}
+          Sadece JSON cevap ver, başka bir şey yazma.` },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 200
+      },
+      {
+        headers: {
+          'Authorization': `Bearer ${process.env.MISTRAL_API_KEY}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.data.choices[0].message.content;
+  } catch (error) {
+    console.error('AI hatası:', error.response?.data || error.message);
+    io.emit('log', { type: 'hata', message: `❌ AI hatası: ${error.message}` });
+    return null;
+  }
 }
-
-function saveMemory() {
-  try {
-    fs.writeFileSync(MEMORY_FILE, JSON.stringify(memory, null, 2));
-  } catch {}
-}
-
-loadMemory();
-
-// ============ SİSTEM PROMPT'U ============
-const SYSTEM_PROMPT = `
-Sen Minecraft'ta yaşayan bir yapay zeka ajanısın. Botun yapabileceği tüm eylemleri ve sunucu komutlarını biliyorsun.
-
-YETENEKLERİN:
-- move <x> <y> <z> : Koordinata git
-- mine <blok> : Blok kaz (örn: mine diamond_ore)
-- combat <hedef> : Canlıya saldır (zombi, iskelet, oyuncu)
-- chat <mesaj> : Sohbete mesaj gönder
-- follow <oyuncu> : Oyuncuyu takip et
-- stopFollow : Takibi durdur
-- eat : Envanterdeki yemeği ye
-- observe : Etrafı gözlemle, rapor üret
-- craft <eşya> <miktar> : Eşya yap (örn: craft diamond_sword 1)
-- use <blok> : Blok kullan (kapı, sandık, fırın, üretim masası)
-- equip <eşya> <yer> : Eşyayı kuşan
-- openContainer <blok> : Sandık/fırın aç
-- deposit <eşya> <miktar> : Konteynıra eşya koy
-- withdraw <eşya> <miktar> : Konteynırdan eşya al
-- drop <eşya> <miktar> : Eşyayı yere at
-- wait <saniye> : Bekle
-- stop : Tüm işlemleri durdur
-- explore : Otomatik keşif başlat
-- branchMine <uzunluk> <dalSayısı> <yön> : Branch mining başlat
-- click <hedef> <sağ|sol> : NPC'ye veya oyuncuya tıkla
-- clickGui <slot> : Açık GUI'de slota tıkla
-
-SUNUCU KOMUTLARI:
-/lobby, /hub, /spawn, /shop, /market, /tpa, /tpaccept, /warp, /home, /sethome, /delhome, /msg, /r, /ignore, /list, /ping, /stats, /duel, /party, /guild, /f, /friend, /trade, /pay, /bal, /withdraw, /deposit, /craft, /enchant, /anvil, /repair, /rename, /color, /hat, /nick, /skin, /cape, /pet, /mount, /disguise, /fly, /speed, /gm, /gamemode, /time, /weather, /pvp, /god, /heal, /feed, /clear, /invsee, /enderchest, /back, /tpahere, /tp, /tphere, /tpall, /kick, /ban, /mute, /warn, /report, /help, /rules, /discord, /website, /store, /vote, /claim, /kit, /daily, /quest, /mission, /achievement, /rank, /level, /exp, /skill, /class, /race, /clan, /alliance, /war, /peace, /trade, /auction, /market, /bazaar, /blackmarket, /mine, /farm, /fish, /hunt, /cook, /brew
-
-ÖZEL GUI'LER:
-- AesirMC Login: NPC "ASMP" ye tıkla, End Crystal butonuna tıkla.
-- Sunucu Seçimi: "Oyuna Gir" butonuna tıkla.
-- Lobby Menü: "Oyuna Gir", "Sunucuya Git", "Başla" butonlarına tıkla.
-
-KURALLAR:
-- Kullanıcı doğal dilde komut verecek.
-- Eğer bir sunucu komutu gerekiyorsa, "/" ile başlayan komut gönder.
-- Eğer NPC tıklama gerekiyorsa, "click" kullan.
-- Eğer GUI tıklama gerekiyorsa, "clickGui" kullan.
-- Eğer normal minecraft işlemi gerekiyorsa, ilgili yeteneği kullan.
-- Eğer sohbetse, normal cevap ver.
-- Birden fazla adım varsa JSON dizisi olarak cevap ver.
-- Sadece JSON cevap ver, başka bir şey yazma.
-`;
 
 // ============ BOT OLUŞTUR ============
 function createBot() {
   console.log(`🔄 Bağlanılıyor: ${config.serverHost}:${config.serverPort}`);
+  io.emit('log', { type: 'sistem', message: `🔄 Bağlanılıyor: ${config.serverHost}` });
 
   bot = mineflayer.createBot({
     host: config.serverHost,
@@ -104,85 +67,45 @@ function createBot() {
 
   bot.loadPlugin(pathfinder);
 
-  // ============ OLAYLAR ============
   bot.on('login', () => {
     console.log(`✅ ${bot.username} giriş yaptı!`);
-    isConnected = true;
+    io.emit('log', { type: 'sistem', message: `✅ ${bot.username} giriş yaptı!` });
     reconnectAttempts = 0;
-    io.emit('botStatus', {
-      botName: config.botName,
-      server: `${config.serverHost}:${config.serverPort}`,
-      health: bot.health,
-      food: bot.food,
-      coords: `${Math.round(bot.entity.position.x)}, ${Math.round(bot.entity.position.y)}, ${Math.round(bot.entity.position.z)}`
-    });
-    logToFile('./data/history.json', { type: 'login', message: `${bot.username} giriş yaptı.` });
+    loginDone = false;
+    updateStatus();
   });
 
   bot.once('spawn', () => {
     console.log('✅ Spawn oldu!');
     io.emit('log', { type: 'sistem', message: '✅ Spawn oldu!' });
 
-    // Pathfinder ayarları
     try {
       const mcData = require('minecraft-data')(bot.version);
       const defaultMove = new Movements(bot, mcData);
       bot.pathfinder.setMovements(defaultMove);
     } catch (err) {
-      console.error('Pathfinder hatası:', err.message);
+      console.error('Pathfinder ayar hatası:', err.message);
     }
 
     // AesirMC Login
-    setTimeout(doAesirLogin, 3000);
+    setTimeout(() => doAesirLogin(), 3000);
 
-    // Radar
-    setInterval(() => {
-      if (!isConnected) return;
-      try {
-        const entities = Object.values(bot.entities)
-          .filter(e => e !== bot.entity)
-          .map(e => ({
-            name: e.username || e.name || '?',
-            type: e.type,
-            distance: bot.entity.position.distanceTo(e.position),
-            x: e.position.x - bot.entity.position.x,
-            z: e.position.z - bot.entity.position.z,
-            health: e.health || 0
-          }));
-        io.emit('radarData', entities);
-      } catch {}
-    }, 1000);
+    // Radar başlat
+    startRadar();
 
-    // Envanter
-    setInterval(() => {
-      if (!isConnected) return;
-      try {
-        const items = bot.inventory.items().map(i => ({
-          name: i.name,
-          count: i.count,
-          damage: i.metadata
-        }));
-        io.emit('inventory', items);
-      } catch {}
+    // Ping başlat
+    startPing();
+
+    // Envanter başlat
+    startInventory();
+
+    // AFK başlat (login olunca)
+    setTimeout(() => {
+      if (!loginDone) {
+        bot.chat('Hazırım! Ne yapmamı istersin?');
+        io.emit('log', { type: 'bot', message: '💬 Hazırım! Ne yapmamı istersin?' });
+      }
     }, 5000);
-
-    // Ping
-    setInterval(() => {
-      if (!isConnected || !bot._client) return;
-      try {
-        const ping = bot._client.latency || 0;
-        io.emit('ping', ping);
-      } catch {}
-    }, 2000);
-
-    // Otomatik kuralları kontrol et
-    setInterval(() => {
-      if (!isConnected) return;
-      checkAutoRules();
-    }, 5000);
-
-    // AI döngüsü (pasif, sadece komut geldiğinde çalışır)
-    // Web'den gelen komutları dinle
   });
 
   bot.on('error', (err) => {
@@ -192,11 +115,9 @@ function createBot() {
 
   bot.on('end', (reason) => {
     console.log(`⚠️ Bağlantı kesildi: ${reason}`);
-    isConnected = false;
     io.emit('log', { type: 'sistem', message: `⚠️ Bağlantı kesildi: ${reason}` });
     stopFollow();
-    stopExplore();
-    stopBranchMine();
+    stopAFK();
     reconnect();
   });
 
@@ -204,8 +125,7 @@ function createBot() {
     console.log(`👢 Atıldı: ${reason}`);
     io.emit('log', { type: 'sistem', message: `👢 Atıldı: ${reason}` });
     stopFollow();
-    stopExplore();
-    stopBranchMine();
+    stopAFK();
     reconnect();
   });
 
@@ -213,7 +133,11 @@ function createBot() {
     const msg = message.toString();
     console.log('📩', msg);
     io.emit('log', { type: 'sohbet', message: `📩 ${msg}` });
-    logToFile('./data/chat_history.json', { type: 'sunucu', message: msg });
+    if (!loginDone && (msg.includes('giriş yaptın') || msg.includes('hoş geldin') || msg.includes('lobby'))) {
+      loginDone = true;
+      io.emit('log', { type: 'sistem', message: '✅ Login başarılı!' });
+      startAFK();
+    }
   });
 
   bot.on('whisper', (username, message) => {
@@ -225,36 +149,27 @@ function createBot() {
   });
 
   bot.on('windowOpen', (window) => {
-    io.emit('log', { type: 'sistem', message: `🪟 GUI açıldı: ${window.title}` });
-    // Özel GUI işlemleri
-    if (window.title.includes('Login') || window.title.includes('Giriş') || window.title.includes('Lobby')) {
+    io.emit('log', { type: 'sistem', message: `🪟 Pencere açıldı: ${window.title}` });
+    if (window.title.includes('Login') || window.title.includes('Lobby') || window.title.includes('Menü')) {
       // End Crystal slotu genelde 13 veya 22
+      const targetSlot = 13;
       try {
-        bot.clickWindow(13, 0, 0);
-        io.emit('log', { type: 'sistem', message: '🖱️ End Crystal\'e tıklandı.' });
-      } catch {}
+        bot.clickWindow(targetSlot, 0, 0);
+        io.emit('log', { type: 'sistem', message: `✅ GUI'de slot ${targetSlot}'e tıklandı.` });
+        loginDone = true;
+        startAFK();
+      } catch (err) {
+        io.emit('log', { type: 'hata', message: `❌ GUI tıklama hatası: ${err.message}` });
+      }
     }
   });
 
-  bot.on('move', () => {
-    if (isConnected) {
-      io.emit('botStatus', {
-        health: bot.health,
-        food: bot.food,
-        coords: `${Math.round(bot.entity.position.x)}, ${Math.round(bot.entity.position.y)}, ${Math.round(bot.entity.position.z)}`
-      });
-    }
-  });
-
-  bot.on('health', () => {
-    if (bot.health < 10 && bot.food < 10) {
-      executeAction('eat', []);
-    }
-  });
+  bot.on('move', updateStatus);
 }
 
 // ============ AESIRMC LOGIN ============
 function doAesirLogin() {
+  if (loginDone) return;
   io.emit('log', { type: 'sistem', message: '🔍 NPC aranıyor...' });
 
   const npc = Object.values(bot.entities).find(e =>
@@ -266,63 +181,99 @@ function doAesirLogin() {
     bot.lookAt(npc.position.offset(0, 1.6, 0), true, () => {
       bot.activateEntity(npc);
       io.emit('log', { type: 'sistem', message: '✅ NPC\'ye tıklandı.' });
+      loginDone = true;
+      setTimeout(() => {
+        bot.chat('/afk');
+        startAFK();
+      }, 2000);
     });
   } else {
     io.emit('log', { type: 'sistem', message: '⚠️ NPC bulunamadı, /lobby komutu gönderiliyor...' });
     bot.chat('/lobby');
+    setTimeout(() => {
+      if (!loginDone) doAesirLogin();
+    }, 3000);
   }
 }
 
-// ============ WEB KOMUTLARI ============
-io.on('botCommand', async (data) => {
-  const command = data.command;
-  console.log(`📨 Web'den komut: ${command}`);
-  io.emit('log', { type: 'komut', message: `📨 ${command}` });
-  logToFile('./data/history.json', { type: 'command', command: command });
-
-  // Önce doğrudan komut mu?
-  if (command.startsWith('/')) {
-    bot.chat(command);
-    io.emit('log', { type: 'bot', message: `💬 ${command}` });
-    return;
-  }
-
-  // AI'ya sor
-  const response = await askAI(command, SYSTEM_PROMPT);
-  if (response) {
-    io.emit('log', { type: 'ai', message: `🧠 ${response}` });
-    try {
-      const parsed = JSON.parse(response);
-      if (Array.isArray(parsed)) {
-        for (const action of parsed) {
-          await executeAction(action.action, action.params || []);
-        }
-      } else {
-        await executeAction(parsed.action, parsed.params || []);
-      }
-    } catch (err) {
-      // JSON parse edilemedi, normal sohbet cevabı
-      if (bot._client?.state === 'connected') {
-        bot.chat(response);
-        io.emit('log', { type: 'bot', message: `💬 ${response}` });
-      }
+// ============ AFK ============
+function startAFK() {
+  if (afkInterval) clearInterval(afkInterval);
+  afkInterval = setInterval(() => {
+    if (bot && bot._client && bot._client.state === 'connected') {
+      bot.setControlState('jump', true);
+      setTimeout(() => bot.setControlState('jump', false), 200);
     }
-  }
-});
+  }, 30000);
+  io.emit('log', { type: 'sistem', message: '💤 AFK modu aktif.' });
+}
 
-// ============ AKSİYON ÇALIŞTIR ============
+function stopAFK() {
+  if (afkInterval) {
+    clearInterval(afkInterval);
+    afkInterval = null;
+  }
+}
+
+// ============ RADAR ============
+function startRadar() {
+  setInterval(() => {
+    if (!bot || !bot.entity) return;
+    try {
+      const entities = Object.values(bot.entities)
+        .filter(e => e !== bot.entity)
+        .map(e => ({
+          name: e.username || e.name || '?',
+          type: e.type,
+          distance: bot.entity.position.distanceTo(e.position),
+          x: e.position.x - bot.entity.position.x,
+          z: e.position.z - bot.entity.position.z,
+          health: e.health || 0
+        }));
+      io.emit('radarData', entities);
+    } catch (err) { /* sessiz */ }
+  }, 1000);
+}
+
+// ============ PING ============
+function startPing() {
+  setInterval(() => {
+    if (bot && bot._client && bot._client.state === 'connected') {
+      const ping = bot._client.latency || 0;
+      io.emit('ping', ping);
+    }
+  }, 2000);
+}
+
+// ============ ENVANTER ============
+function startInventory() {
+  setInterval(() => {
+    if (!bot || !bot.inventory) return;
+    try {
+      const items = bot.inventory.items().map(item => ({
+        name: item.name,
+        count: item.count,
+        durability: item.durabilityUsed || 0
+      }));
+      io.emit('inventory', items);
+    } catch (err) { /* sessiz */ }
+  }, 5000);
+}
+
+// ============ KOMUT ÇALIŞTIR ============
 async function executeAction(action, params) {
   switch (action) {
     case 'move':
     case 'goto': {
       const [x, y, z] = params.map(Number);
-      if (isNaN(x) || isNaN(y) || isNaN(z)) return;
+      if (isNaN(x) || isNaN(y) || isNaN(z)) return 'Hatalı koordinat.';
       try {
         await bot.pathfinder.goto({ x, y, z });
         const msg = `${x}, ${y}, ${z} gidildi.`;
+        bot.chat(msg);
         io.emit('log', { type: 'bot', message: `✅ ${msg}` });
       } catch (err) {
-        io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
+        io.emit('log', { type: 'hata', message: `❌ Hareket hatası: ${err.message}` });
       }
       break;
     }
@@ -330,13 +281,13 @@ async function executeAction(action, params) {
       const type = params[0];
       const block = bot.findBlock({ matching: b => b.name === type, maxDistance: 10 });
       if (!block) {
-        io.emit('log', { type: 'bot', message: `⚠️ ${type} bulunamadı.` });
+        bot.chat(`${type} bulunamadı.`);
         return;
       }
       try {
         await bot.dig(block);
+        bot.chat(`${type} kazıldı.`);
         io.emit('log', { type: 'bot', message: `✅ ${type} kazıldı.` });
-        logToFile('./data/history.json', { type: 'mine', block: type });
       } catch (err) {
         io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       }
@@ -346,13 +297,54 @@ async function executeAction(action, params) {
       const target = params[0];
       const entity = bot.nearestEntity(e => e.name === target || e.type === 'mob' && e.name.includes(target));
       if (!entity) {
-        io.emit('log', { type: 'bot', message: `⚠️ ${target} bulunamadı.` });
+        bot.chat(`${target} bulunamadı.`);
         return;
       }
       try {
         await bot.pvp.attack(entity);
+        bot.chat(`${entity.name} saldırıldı.`);
         io.emit('log', { type: 'bot', message: `✅ ${entity.name} saldırıldı.` });
-        logToFile('./data/history.json', { type: 'combat', target: entity.name });
+      } catch (err) {
+        io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
+      }
+      break;
+    }
+    case 'follow': {
+      const playerName = params[0];
+      if (!playerName) {
+        bot.chat('Takip edilecek oyuncu adı belirtilmedi.');
+        return;
+      }
+      const target = bot.players[playerName]?.entity;
+      if (!target) {
+        bot.chat(`${playerName} bulunamadı.`);
+        return;
+      }
+      isFollowing = true;
+      followTarget = playerName;
+      bot.chat(`${playerName} takip ediliyor.`);
+      io.emit('log', { type: 'bot', message: `👤 ${playerName} takip ediliyor.` });
+      startFollowLoop();
+      break;
+    }
+    case 'stopFollow': {
+      stopFollow();
+      bot.chat('Takip durduruldu.');
+      io.emit('log', { type: 'bot', message: '⏹️ Takip durduruldu.' });
+      break;
+    }
+    case 'eat': {
+      const items = bot.inventory.items();
+      const food = items.find(i => i.foodPoints > 0);
+      if (!food) {
+        bot.chat('Yiyecek yok.');
+        return;
+      }
+      try {
+        await bot.equip(food, 'hand');
+        await bot.consume();
+        bot.chat('Yemek yendi.');
+        io.emit('log', { type: 'bot', message: '🍖 Yemek yendi.' });
       } catch (err) {
         io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       }
@@ -363,165 +355,46 @@ async function executeAction(action, params) {
       if (msg) {
         bot.chat(msg);
         io.emit('log', { type: 'bot', message: `💬 ${msg}` });
-        logToFile('./data/chat_history.json', { type: 'bot', message: msg });
-      }
-      break;
-    }
-    case 'follow': {
-      const playerName = params[0];
-      if (!playerName) {
-        io.emit('log', { type: 'bot', message: '⚠️ Takip edilecek oyuncu adı belirtilmedi.' });
-        return;
-      }
-      const target = bot.players[playerName]?.entity;
-      if (!target) {
-        io.emit('log', { type: 'bot', message: `⚠️ ${playerName} bulunamadı.` });
-        return;
-      }
-      isFollowing = true;
-      followTarget = playerName;
-      io.emit('log', { type: 'bot', message: `👤 ${playerName} takip ediliyor.` });
-      startFollowLoop();
-      break;
-    }
-    case 'stopFollow': {
-      stopFollow();
-      io.emit('log', { type: 'bot', message: '⏹️ Takip durduruldu.' });
-      break;
-    }
-    case 'eat': {
-      const items = bot.inventory.items();
-      const food = items.find(i => i.foodPoints > 0);
-      if (!food) {
-        io.emit('log', { type: 'bot', message: '⚠️ Yiyecek yok.' });
-        return;
-      }
-      try {
-        await bot.equip(food, 'hand');
-        await bot.consume();
-        io.emit('log', { type: 'bot', message: '🍖 Yemek yendi.' });
-      } catch (err) {
-        io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
-      }
-      break;
-    }
-    case 'observe': {
-      const entities = Object.values(bot.entities);
-      const players = entities.filter(e => e.type === 'player').map(e => e.username);
-      const mobs = entities.filter(e => e.type === 'mob').map(e => e.name);
-      const pos = bot.entity.position;
-      const report = `Oyuncular: ${players.join(', ') || 'Yok'}, Canavarlar: ${mobs.join(', ') || 'Yok'}, Koordinat: (${Math.round(pos.x)}, ${Math.round(pos.y)}, ${Math.round(pos.z)}), Can: ${bot.health}, Açlık: ${bot.food}`;
-      io.emit('log', { type: 'bot', message: `👀 ${report}` });
-      break;
-    }
-    case 'craft': {
-      const itemName = params[0];
-      const count = parseInt(params[1]) || 1;
-      try {
-        await bot.craft(itemName, count);
-        io.emit('log', { type: 'bot', message: `✅ ${count} adet ${itemName} yapıldı.` });
-        logToFile('./data/history.json', { type: 'craft', item: itemName, count: count });
-      } catch (err) {
-        io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       }
       break;
     }
     case 'use': {
-      const type = params[0];
-      const block = bot.findBlock({ matching: b => b.name === type, maxDistance: 5 });
+      const blockType = params[0];
+      const block = bot.findBlock({ matching: b => b.name === blockType, maxDistance: 5 });
       if (!block) {
-        io.emit('log', { type: 'bot', message: `⚠️ ${type} bulunamadı.` });
+        bot.chat(`${blockType} bulunamadı.`);
         return;
       }
       try {
+        await bot.lookAt(block.position);
         await bot.activateBlock(block);
-        io.emit('log', { type: 'bot', message: `✅ ${type} kullanıldı.` });
+        bot.chat(`${blockType} kullanıldı.`);
+        io.emit('log', { type: 'bot', message: `✅ ${blockType} kullanıldı.` });
       } catch (err) {
         io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       }
-      break;
-    }
-    case 'click': {
-      const targetName = params[0];
-      const clickType = params[1] || 'right';
-      const entity = Object.values(bot.entities).find(e => e.username === targetName || e.name === targetName);
-      if (!entity) {
-        io.emit('log', { type: 'bot', message: `⚠️ ${targetName} bulunamadı.` });
-        return;
-      }
-      bot.lookAt(entity.position.offset(0, 1.6, 0), true, () => {
-        if (clickType === 'right') {
-          bot.activateEntity(entity);
-          io.emit('log', { type: 'bot', message: `✅ ${targetName}'e sağ tıklandı.` });
-        } else {
-          bot.attack(entity);
-          io.emit('log', { type: 'bot', message: `✅ ${targetName}'e sol tıklandı.` });
-        }
-      });
-      break;
-    }
-    case 'clickGui': {
-      const slot = parseInt(params[0]);
-      if (isNaN(slot)) return;
-      try {
-        bot.clickWindow(slot, 0, 0);
-        io.emit('log', { type: 'bot', message: `🖱️ GUI'de ${slot}. slota tıklandı.` });
-      } catch (err) {
-        io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
-      }
-      break;
-    }
-    case 'explore': {
-      startExplore();
-      break;
-    }
-    case 'stopExplore': {
-      stopExplore();
-      break;
-    }
-    case 'branchMine': {
-      const length = parseInt(params[0]) || 50;
-      const branches = parseInt(params[1]) || 5;
-      const direction = params[2] || 'kuzey';
-      startBranchMine(length, branches, direction);
-      break;
-    }
-    case 'stopBranchMine': {
-      stopBranchMine();
-      break;
-    }
-    case 'wait': {
-      const seconds = parseInt(params[0]) || 1;
-      await sleep(seconds * 1000);
-      break;
-    }
-    case 'stop': {
-      stopFollow();
-      stopExplore();
-      stopBranchMine();
-      io.emit('log', { type: 'bot', message: '⏹️ Tüm işlemler durduruldu.' });
       break;
     }
     default: {
-      // Sunucu komutu mu?
+      // Sunucu komutu ise
       if (action.startsWith('/')) {
         bot.chat(action);
-        io.emit('log', { type: 'bot', message: `💬 ${action}` });
+        io.emit('log', { type: 'bot', message: `📨 ${action} gönderildi.` });
       } else {
-        io.emit('log', { type: 'hata', message: `❌ Bilinmeyen yetenek: ${action}` });
+        io.emit('log', { type: 'ai', message: `❌ Bilinmeyen yetenek: ${action}` });
       }
     }
   }
 }
 
-// ============ TAKİP ============
+// ============ TAKİP DÖNGÜSÜ ============
 function startFollowLoop() {
   if (followInterval) clearInterval(followInterval);
   followInterval = setInterval(async () => {
     if (!isFollowing || !followTarget) return;
     const target = bot.players[followTarget]?.entity;
     if (!target) {
-      io.emit('log', { type: 'bot', message: `⚠️ ${followTarget} kayboldu, takip durduruldu.` });
+      bot.chat(`${followTarget} kayboldu, takip durduruldu.`);
       stopFollow();
       return;
     }
@@ -529,7 +402,7 @@ function startFollowLoop() {
     if (distance > 3) {
       try {
         await bot.pathfinder.goto(target.position);
-      } catch {}
+      } catch (err) { /* sessiz */ }
     }
   }, 1000);
 }
@@ -543,118 +416,50 @@ function stopFollow() {
   }
 }
 
-// ============ KEŞİF ============
-function startExplore() {
-  if (isExploring) return;
-  isExploring = true;
-  io.emit('log', { type: 'bot', message: '🔍 Keşif modu başlatıldı.' });
-  exploreLoop();
-}
-
-async function exploreLoop() {
-  while (isExploring) {
-    try {
-      const angle = Math.random() * 2 * Math.PI;
-      const distance = 50 + Math.random() * 100;
-      const targetX = bot.entity.position.x + Math.cos(angle) * distance;
-      const targetZ = bot.entity.position.z + Math.sin(angle) * distance;
-      await bot.pathfinder.goto({ x: targetX, y: bot.entity.position.y, z: targetZ });
-      await executeAction('observe', []);
-      await sleep(2000);
-    } catch (err) {
-      io.emit('log', { type: 'hata', message: `❌ Keşif hatası: ${err.message}` });
-      await sleep(5000);
-    }
-  }
-}
-
-function stopExplore() {
-  isExploring = false;
-  io.emit('log', { type: 'bot', message: '⏹️ Keşif durduruldu.' });
-}
-
-// ============ BRANCH MINING ============
-function startBranchMine(length, branches, direction) {
-  if (isBranchMining) return;
-  isBranchMining = true;
-  branchMineData = { length, branches, direction, current: 0 };
-  io.emit('log', { type: 'bot', message: `⛏️ Branch mining başlatıldı: ${branches} dal, ${length} blok, yön: ${direction}` });
-  branchMineLoop();
-}
-
-async function branchMineLoop() {
-  while (isBranchMining && branchMineData.current < branchMineData.branches) {
-    try {
-      const offset = branchMineData.current * 3;
-      const startX = bot.entity.position.x + offset;
-      const startZ = bot.entity.position.z;
-      await bot.pathfinder.goto({ x: startX, y: bot.entity.position.y, z: startZ });
-      for (let i = 0; i < branchMineData.length && isBranchMining; i++) {
-        const targetX = startX + (branchMineData.direction === 'doğu' ? i : branchMineData.direction === 'batı' ? -i : 0);
-        const targetZ = startZ + (branchMineData.direction === 'kuzey' ? -i : branchMineData.direction === 'güney' ? i : 0);
-        await bot.pathfinder.goto({ x: targetX, y: bot.entity.position.y, z: targetZ });
-        await mineValuableBlocks();
-        await sleep(500);
-      }
-      branchMineData.current++;
-      io.emit('log', { type: 'bot', message: `✅ ${branchMineData.current}. dal tamamlandı.` });
-    } catch (err) {
-      io.emit('log', { type: 'hata', message: `❌ Branch mining hatası: ${err.message}` });
-      await sleep(3000);
-    }
-  }
-  if (isBranchMining) {
-    io.emit('log', { type: 'bot', message: '🎉 Branch mining tamamlandı!' });
-    stopBranchMine();
-  }
-}
-
-async function mineValuableBlocks() {
-  const blocks = ['diamond_ore', 'iron_ore', 'gold_ore', 'emerald_ore', 'lapis_ore'];
-  for (const type of blocks) {
-    const block = bot.findBlock({ matching: b => b.name === type, maxDistance: 3 });
-    if (block) {
-      try {
-        await bot.dig(block);
-        io.emit('log', { type: 'bot', message: `💎 ${type} bulundu ve kazıldı.` });
-        logToFile('./data/discoveries.json', { type: 'valuable', block: type, coords: [block.position.x, block.position.y, block.position.z] });
-      } catch {}
-    }
-  }
-}
-
-function stopBranchMine() {
-  isBranchMining = false;
-  branchMineData = null;
-  io.emit('log', { type: 'bot', message: '⏹️ Branch mining durduruldu.' });
-}
-
-// ============ OTOMATİK KURALLAR ============
-function checkAutoRules() {
-  // Örnek kurallar
-  if (bot.health < 10 && bot.food < 10) {
-    executeAction('eat', []);
-  }
-  // Düşman varsa saldır
-  const enemy = Object.values(bot.entities).find(e =>
-    e.type === 'mob' && ['zombie', 'skeleton', 'spider', 'creeper'].includes(e.name)
-  );
-  if (enemy && bot.health > 10) {
-    executeAction('combat', [enemy.name]);
-  }
+// ============ DURUM GÜNCELLEME ============
+function updateStatus() {
+  if (!bot || !bot.entity) return;
+  io.emit('botStatus', {
+    health: bot.health,
+    food: bot.food,
+    coords: `${Math.round(bot.entity.position.x)}, ${Math.round(bot.entity.position.y)}, ${Math.round(bot.entity.position.z)}`
+  });
 }
 
 // ============ YENİDEN BAĞLAN ============
 function reconnect() {
   if (reconnectAttempts >= MAX_RECONNECT) {
+    console.log('❌ Maksimum deneme aşıldı.');
     io.emit('log', { type: 'hata', message: '❌ Maksimum yeniden bağlanma denemesi aşıldı.' });
     process.exit(1);
   }
   reconnectAttempts++;
   const wait = reconnectAttempts * 5000;
+  console.log(`🔄 ${wait/1000}s sonra yeniden bağlanma ${reconnectAttempts}/${MAX_RECONNECT}...`);
   io.emit('log', { type: 'sistem', message: `🔄 ${wait/1000}s sonra yeniden bağlanma ${reconnectAttempts}/${MAX_RECONNECT}...` });
   setTimeout(createBot, wait);
 }
+
+// ============ WEB KOMUTLARI ============
+io.on('botCommand', async (data) => {
+  const command = data.command;
+  console.log(`📨 Web'den komut: ${command}`);
+  const response = await askAI(command);
+  if (response) {
+    try {
+      const parsed = JSON.parse(response);
+      if (Array.isArray(parsed)) {
+        for (const step of parsed) {
+          await executeAction(step.action, step.params || []);
+        }
+      } else {
+        await executeAction(parsed.action, parsed.params || []);
+      }
+    } catch (err) {
+      io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
+    }
+  }
+});
 
 // ============ BAŞLAT ============
 createBot();
