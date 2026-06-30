@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Minecraft Bot</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="app">
+    <header>
+      <h1>🤖 AI Minecraft Bot</h1>
+      <span id="status">🟢 Çevrimiçi</span>
+    </header>
+
+    <!-- Ayarlar -->
+    <div id="settings-panel">
+      <h2>⚙️ Bağlantı Ayarları</h2>
+      <form id="settingsForm">
+        <input type="text" id="setBotName" placeholder="Bot İsmi" value="BenimAIBot">
+        <input type="text" id="setServerHost" placeholder="Sunucu IP" value="aesirmc.com">
+        <input type="number" id="setServerPort" placeholder="Port" value="25565">
+        <input type="text" id="setVersion" placeholder="Sürüm (örn: 1.8.9)" value="1.8.9">
+        <select id="setAuth">
+          <option value="offline">Offline</option>
+          <option value="microsoft">Microsoft</option>
+        </select>
+        <input type="number" id="setRenderDistance" placeholder="Render Distance" value="10">
+        <button type="submit">💾 Kaydet ve Yeniden Başlat</button>
+      </form>
+    </div>
+
+    <!-- Bot Durumu -->
+    <div id="botInfo">
+      <h2>📊 Bot Durumu</h2>
+      <p>İsim: <span id="botName">-</span></p>
+      <p>Sunucu: <span id="serverInfo">-</span></p>
+      <p>Can: <span id="health">-</span></p>
+      <p>Açlık: <span id="food">-</span></p>
+      <p>Koordinat: <span id="coords">-</span></p>
+      <p>Ping: <span id="ping">-</span> ms</p>
+    </div>
+
+    <!-- 2D Radar -->
+    <div id="radarContainer">
+      <h2>📡 Radar</h2>
+      <canvas id="radarCanvas" width="400" height="400"></canvas>
+      <p id="radarLegend">🟢 Oyuncu | 🔴 Düşman | 🟡 Hayvan | ⚪ Diğer</p>
+    </div>
+
+    <!-- Envanter -->
+    <div id="inventoryContainer">
+      <h2>📦 Envanter</h2>
+      <div id="inventoryList"></div>
+    </div>
+
+    <!-- Konsol -->
+    <div id="console">
+      <h2>📋 Konsol</h2>
+      <div id="logContainer"></div>
+      <div id="commandBox">
+        <input type="text" id="commandInput" placeholder="Doğal dil komut gönder...">
+        <button id="sendCommand">Gönder</button>
+      </div>
+    </div>
+
+    <!-- Hızlı Komutlar -->
+    <div id="quickCommands">
+      <h2>⚡ Hızlı Komutlar</h2>
+      <div id="addQuickCommand">
+        <input type="text" id="newQuickLabel" placeholder="Buton Adı">
+        <input type="text" id="newQuickCommand" placeholder="Komut">
+        <button id="addQuickBtn">➕ Ekle</button>
+      </div>
+      <div id="quickCommandsList"></div>
+    </div>
+
+    <!-- Görev Geçmişi -->
+    <div id="historyContainer">
+      <h2>📜 Görev Geçmişi</h2>
+      <div id="historyList"></div>
+    </div>
+
+    <!-- Keşfedilen Yerler -->
+    <div id="discoveriesContainer">
+      <h2>🗺️ Keşfedilen Yerler</h2>
+      <div id="discoveriesList"></div>
+    </div>
+
+    <footer>
+      <p>AI Minecraft Bot v5.0 | Powered by Mistral AI</p>
+    </footer>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/script.js"></script>
+</body>
+</html>
