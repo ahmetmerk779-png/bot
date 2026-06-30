@@ -20,7 +20,7 @@
         <input type="text" id="setBotName" placeholder="Bot İsmi" value="BenimAIBot">
         <input type="text" id="setServerHost" placeholder="Sunucu IP" value="aesirmc.com">
         <input type="number" id="setServerPort" placeholder="Port" value="25565">
-        <input type="text" id="setVersion" placeholder="Sürüm (örn: 1.8.9)" value="1.8.9">
+        <input type="text" id="setVersion" placeholder="Sürüm" value="1.8.9">
         <select id="setAuth">
           <option value="offline">Offline</option>
           <option value="microsoft">Microsoft</option>
@@ -41,17 +41,17 @@
       <p>Ping: <span id="ping">-</span> ms</p>
     </div>
 
-    <!-- 2D Radar -->
+    <!-- Radar -->
     <div id="radarContainer">
       <h2>📡 Radar</h2>
-      <canvas id="radarCanvas" width="400" height="400"></canvas>
+      <canvas id="radarCanvas" width="300" height="300"></canvas>
       <p id="radarLegend">🟢 Oyuncu | 🔴 Düşman | 🟡 Hayvan | ⚪ Diğer</p>
     </div>
 
     <!-- Envanter -->
     <div id="inventoryContainer">
       <h2>📦 Envanter</h2>
-      <div id="inventoryList"></div>
+      <ul id="inventoryList"></ul>
     </div>
 
     <!-- Konsol -->
@@ -73,18 +73,6 @@
         <button id="addQuickBtn">➕ Ekle</button>
       </div>
       <div id="quickCommandsList"></div>
-    </div>
-
-    <!-- Görev Geçmişi -->
-    <div id="historyContainer">
-      <h2>📜 Görev Geçmişi</h2>
-      <div id="historyList"></div>
-    </div>
-
-    <!-- Keşfedilen Yerler -->
-    <div id="discoveriesContainer">
-      <h2>🗺️ Keşfedilen Yerler</h2>
-      <div id="discoveriesList"></div>
     </div>
 
     <footer>
