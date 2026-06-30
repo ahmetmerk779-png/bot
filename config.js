@@ -1,6 +1,7 @@
-import fs from 'fs';
+const fs = require('fs');
+const path = require('path');
 
-const CONFIG_PATH = './config.json';
+const CONFIG_PATH = path.join(__dirname, 'config.json');
 
 const defaults = {
   botName: 'BenimAIBot',
@@ -11,7 +12,7 @@ const defaults = {
   renderDistance: 10
 };
 
-export function loadConfig() {
+function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
       const data = fs.readFileSync(CONFIG_PATH, 'utf8');
@@ -23,7 +24,7 @@ export function loadConfig() {
   return { ...defaults };
 }
 
-export function saveConfig(newConfig) {
+function saveConfig(newConfig) {
   try {
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(newConfig, null, 2));
     return true;
@@ -32,3 +33,5 @@ export function saveConfig(newConfig) {
     return false;
   }
 }
+
+module.exports = { loadConfig, saveConfig, defaults };
