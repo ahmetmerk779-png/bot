@@ -27,6 +27,7 @@ function addLog(type, message) {
 function sendCommand(command) {
   if (!command) return;
   socket.emit('command', command);
+  addLog('komut', `📨 ${command}`);
   commandInput.value = '';
 }
 
@@ -41,19 +42,19 @@ let quickCommands = [];
 function loadQuickCommands() {
   try {
     const stored = localStorage.getItem('quickCommands');
-    if (stored) { quickCommands = JSON.parse(stored); }
-    else {
+    if (stored) {
+      quickCommands = JSON.parse(stored);
+    } else {
       quickCommands = [
         { label: '🔍 Keşfet', command: 'explore' },
-        { label: '⏹️ Durdur', command: 'stopExplore' },
-        { label: '⛏️ Elmas Ara', command: 'branchMine 50 5 kuzey' },
-        { label: '⏹️ Kazmayı Durdur', command: 'stopBranchMine' },
+        { label: '⏹️ Durdur', command: 'explore durdur' },
+        { label: '⛏️ Elmas Ara', command: 'mine diamond_ore' },
         { label: '👀 Gözlem', command: 'observe' },
         { label: '🍖 Yemek Ye', command: 'eat' }
       ];
       saveQuickCommands();
     }
-  } catch {}
+  } catch (err) { console.error(err); }
   renderQuickCommands();
 }
 
@@ -72,22 +73,18 @@ function renderQuickCommands() {
     const btn = document.createElement('button');
     btn.className = 'quick-btn';
     btn.textContent = item.label;
+    btn.dataset.command = item.command;
     btn.addEventListener('click', () => sendCommand(item.command));
     wrapper.appendChild(btn);
     const delBtn = document.createElement('button');
+    delBtn.className = 'delete-quick-btn';
     delBtn.textContent = '✕';
-    delBtn.style.marginLeft = '5px';
-    delBtn.style.background = '#ff4444';
-    delBtn.style.color = '#fff';
-    delBtn.style.border = 'none';
-    delBtn.style.borderRadius = '50%';
-    delBtn.style.width = '20px';
-    delBtn.style.height = '20px';
-    delBtn.style.cursor = 'pointer';
-    delBtn.addEventListener('click', () => {
+    delBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       quickCommands.splice(index, 1);
       saveQuickCommands();
       renderQuickCommands();
+      addLog('sistem', `🗑️ "${item.label}" silindi.`);
     });
     wrapper.appendChild(delBtn);
     container.appendChild(wrapper);
@@ -97,12 +94,16 @@ function renderQuickCommands() {
 document.getElementById('addQuickBtn')?.addEventListener('click', () => {
   const label = document.getElementById('newQuickLabel').value.trim();
   const command = document.getElementById('newQuickCommand').value.trim();
-  if (!label || !command) return;
+  if (!label || !command) {
+    addLog('hata', '❌ Buton adı ve komut girmelisiniz.');
+    return;
+  }
   quickCommands.push({ label, command });
   saveQuickCommands();
   renderQuickCommands();
   document.getElementById('newQuickLabel').value = '';
   document.getElementById('newQuickCommand').value = '';
+  addLog('sistem', `✅ "${label}" komutu eklendi.`);
 });
 
 // ============ AYARLAR ============
@@ -149,58 +150,81 @@ async function loadConfig() {
 
 // ============ RADAR ============
 function drawRadar(entities) {
-  const w = radarCanvas.width, h = radarCanvas.height;
-  const cx = w/2, cy = h/2;
-  const radius = Math.min(w, h) / 2 - 20;
+  const w = radarCanvas.width;
+  const h = radarCanvas.height;
+  const centerX = w/2;
+  const centerY = h/2;
+  const radius = Math.min(w, h) / 2 - 10;
+
   ctx.clearRect(0, 0, w, h);
+
+  // Arka plan
   ctx.fillStyle = '#0a0a1a';
-  ctx.fillRect(0, 0, w, h);
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+  ctx.fill();
+
+  // Halkalar
   ctx.strokeStyle = '#2a4a5a';
   ctx.lineWidth = 1;
-  for (let r = radius/4; r < radius; r += radius/4) {
+  for (let r = radius / 4; r < radius; r += radius / 4) {
     ctx.beginPath();
-    ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+    ctx.arc(centerX, centerY, r, 0, 2 * Math.PI);
     ctx.stroke();
   }
+
+  // Merkez çizgileri
+  ctx.strokeStyle = '#2a4a5a';
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(cx - radius, cy);
-  ctx.lineTo(cx + radius, cy);
-  ctx.moveTo(cx, cy - radius);
-  ctx.lineTo(cx, cy + radius);
+  ctx.moveTo(centerX - radius, centerY);
+  ctx.lineTo(centerX + radius, centerY);
+  ctx.moveTo(centerX, centerY - radius);
+  ctx.lineTo(centerX, centerY + radius);
   ctx.stroke();
+
+  // Bot
   ctx.fillStyle = '#00d4ff';
   ctx.beginPath();
-  ctx.arc(cx, cy, 6, 0, 2 * Math.PI);
+  ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
   ctx.fill();
   ctx.fillStyle = '#fff';
-  ctx.font = '10px Arial';
+  ctx.font = '8px Arial';
   ctx.textAlign = 'center';
-  ctx.fillText('Bot', cx, cy - 12);
+  ctx.fillText('Bot', centerX, centerY - 10);
 
+  // Varlıklar
   entities.forEach(e => {
-    if (e.distance > 30) return;
+    if (e.distance > 20) return;
     const angle = Math.atan2(e.z, e.x);
-    const r = (e.distance / 30) * radius;
-    const x = cx + Math.sin(angle) * r;
-    const y = cy - Math.cos(angle) * r;
+    const r = (e.distance / 20) * radius;
+    const x = centerX + Math.sin(angle) * r;
+    const y = centerY - Math.cos(angle) * r;
+
     let color = '#888';
-    let label = e.name;
-    if (e.type === 'player') { color = '#44ff88'; label = `👤 ${e.name}`; }
+    if (e.type === 'player') color = '#44ff88';
     else if (e.type === 'mob') {
-      if (['zombie', 'skeleton', 'spider', 'creeper'].includes(e.name)) {
-        color = '#ff4444';
-        label = `💀 ${e.name}`;
-      } else { color = '#ffcc44'; label = `🐄 ${e.name}`; }
+      if (e.name.includes('zombie') || e.name.includes('skeleton') || e.name.includes('spider')) color = '#ff4444';
+      else color = '#ffcc44';
     }
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(x, y, 5, 0, 2 * Math.PI);
+    ctx.arc(x, y, 4, 0, 2 * Math.PI);
     ctx.fill();
     ctx.fillStyle = '#fff';
-    ctx.font = '8px Arial';
+    ctx.font = '7px Arial';
     ctx.textAlign = 'center';
-    ctx.fillText(label, x, y - 10);
+    ctx.fillText(e.name || '?', x, y - 8);
   });
+}
+
+// ============ ENVANTER ============
+function updateInventory(items) {
+  const list = document.getElementById('inventoryList');
+  if (!list) return;
+  list.innerHTML = items.map(i =>
+    `<li>${i.name} x${i.count} ${i.durability > 0 ? `(Hasarlı: ${i.durability})` : ''}</li>`
+  ).join('');
 }
 
 // ============ SOCKET ============
@@ -212,15 +236,9 @@ socket.on('botStatus', (data) => {
   if (data.food !== undefined) food.textContent = data.food;
   if (data.coords) coords.textContent = data.coords;
 });
-socket.on('radarData', drawRadar);
-socket.on('ping', (ms) => { ping.textContent = ms; });
-socket.on('inventory', (items) => {
-  const list = document.getElementById('inventoryList');
-  if (!list) return;
-  list.innerHTML = items.map(i =>
-    `<span class="inventory-item">${i.name} x${i.count}</span>`
-  ).join('');
-});
+socket.on('ping', (data) => { ping.textContent = data; });
+socket.on('radarData', (data) => drawRadar(data));
+socket.on('inventory', (data) => updateInventory(data));
 
 // ============ SAYFA YÜKLENİNCE ============
 document.addEventListener('DOMContentLoaded', () => {
