@@ -1,7 +1,7 @@
 {
-  "name": "ai-minecraft-bot",
-  "version": "5.0.0",
-  "description": "AI Minecraft Bot - AesirMC Uyumlu",
+  "name": "mindcraft-lite",
+  "version": "1.0.0",
+  "description": "Devasa Minecraft AI Bot - MindCraft seviyesinde",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -14,6 +14,7 @@
     "minecraft-data": "^3.97.0",
     "mineflayer": "^4.15.0",
     "mineflayer-pathfinder": "^2.4.5",
-    "socket.io": "^4.6.1"
+    "socket.io": "^4.6.1",
+    "fs": "^0.0.1-security"
   }
 }
