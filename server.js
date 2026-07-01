@@ -1,4 +1,3 @@
-// server.js - Web sunucusu, Socket.io, API (config)
 const express = require('express');
 const path = require('path');
 const http = require('http');
@@ -10,16 +9,14 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIO(server);
 
-// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Şifre
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || 'admin123';
 
-// ============ ŞİFRE KORUMASI ============
+// Şifre koruması
 app.use((req, res, next) => {
   if (req.path === '/login') return next();
   const pwd = req.cookies?.dashboardPassword;
@@ -27,7 +24,6 @@ app.use((req, res, next) => {
   res.redirect('/login');
 });
 
-// Login
 app.get('/login', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -65,16 +61,14 @@ app.post('/login', (req, res) => {
   }
 });
 
-// Ana sayfa
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// ============ API: CONFIG ============
+// API: Config
 app.get('/api/config', (req, res) => {
   try {
-    const config = loadConfig();
-    res.json(config);
+    res.json(loadConfig());
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -82,11 +76,9 @@ app.get('/api/config', (req, res) => {
 
 app.post('/api/config', (req, res) => {
   try {
-    const newConfig = req.body;
-    const saved = saveConfig(newConfig);
+    const saved = saveConfig(req.body);
     if (saved) {
       res.json({ success: true, message: 'Ayarlar kaydedildi. Bot yeniden başlatılıyor...' });
-      // Bot'u yeniden başlatmak için sinyal gönder
       io.emit('restartBot');
       setTimeout(() => process.exit(0), 1500);
     } else {
@@ -97,18 +89,50 @@ app.post('/api/config', (req, res) => {
   }
 });
 
-// ============ API: DİĞER (Opsiyonel) ============
-app.get('/api/status', (req, res) => {
-  res.json({
-    botName: config.botName,
-    serverHost: config.serverHost,
-    serverPort: config.serverPort,
-    version: config.version,
-    auth: config.auth
-  });
+// API: Geçmiş ve istatistikler
+app.get('/api/history', (req, res) => {
+  try {
+    const fs = require('fs');
+    const historyPath = path.join(__dirname, 'history.json');
+    if (fs.existsSync(historyPath)) {
+      res.json(JSON.parse(fs.readFileSync(historyPath, 'utf8')));
+    } else {
+      res.json([]);
+    }
+  } catch (err) {
+    res.json([]);
+  }
 });
 
-// ============ SOCKET.IO ============
+app.get('/api/discoveries', (req, res) => {
+  try {
+    const fs = require('fs');
+    const discoveriesPath = path.join(__dirname, 'discoveries.json');
+    if (fs.existsSync(discoveriesPath)) {
+      res.json(JSON.parse(fs.readFileSync(discoveriesPath, 'utf8')));
+    } else {
+      res.json([]);
+    }
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+app.get('/api/chat-history', (req, res) => {
+  try {
+    const fs = require('fs');
+    const chatPath = path.join(__dirname, 'chat_history.json');
+    if (fs.existsSync(chatPath)) {
+      res.json(JSON.parse(fs.readFileSync(chatPath, 'utf8')));
+    } else {
+      res.json([]);
+    }
+  } catch (err) {
+    res.json([]);
+  }
+});
+
+// Socket.io
 io.on('connection', (socket) => {
   console.log('✅ Web bağlandı.');
   socket.on('command', (data) => {
@@ -119,7 +143,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Sunucuyu başlat
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`🌐 Web: http://localhost:${PORT}`);
