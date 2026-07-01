@@ -1,4 +1,3 @@
-// index.js - Ana Bot
 require('dotenv').config();
 const mineflayer = require('mineflayer');
 const pathfinder = require('mineflayer-pathfinder').pathfinder;
@@ -6,6 +5,7 @@ const Movements = require('mineflayer-pathfinder').Movements;
 const { loadConfig } = require('./config');
 const { io } = require('./server');
 const axios = require('axios');
+const fs = require('fs');
 
 let bot = null;
 let config = loadConfig();
@@ -16,25 +16,75 @@ let followTarget = null;
 let followInterval = null;
 let loginDone = false;
 let afkInterval = null;
+let history = [];
+let discoveries = [];
+let chatHistory = [];
 
-// ============ AI SORGU (Mistral) ============
+// ============ YARDIMCI ============
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function saveHistory() {
+  fs.writeFileSync('./history.json', JSON.stringify(history, null, 2));
+}
+
+function saveDiscoveries() {
+  fs.writeFileSync('./discoveries.json', JSON.stringify(discoveries, null, 2));
+}
+
+function saveChatHistory() {
+  fs.writeFileSync('./chat_history.json', JSON.stringify(chatHistory, null, 2));
+}
+
+// ============ AI SORGU (Mistral - Devasa Prompt) ============
 async function askAI(prompt) {
+  const systemPrompt = `Sen MINDCRAFT seviyesinde bir Minecraft yapay zeka ajanısın.
+Tüm Minecraft yeteneklerini, sunucu komutlarını, özel GUI'leri, NPC etkileşimlerini ve oyun mekaniklerini bilirsin.
+
+YETENEKLERİN:
+- move <x> <y> <z> : Koordinata git
+- mine <blok> : Blok kaz (mine diamond_ore)
+- combat <hedef> : Canlıya saldır (zombi, iskelet, oyuncu)
+- chat <mesaj> : Sohbet et
+- follow <oyuncu> : Oyuncuyu takip et
+- stopFollow : Takibi durdur
+- eat : Yemek ye
+- observe : Etrafı gözlemle (oyuncular, canavarlar, bloklar)
+- craft <eşya> <miktar> : Eşya yap
+- use <blok> : Blok kullan (kapı, sandık, fırın, üretim masası)
+- equip <eşya> <yer> : Eşya kuşan
+- drop <eşya> <miktar> : Eşya at
+- deposit <eşya> <miktar> : Sandığa koy
+- withdraw <eşya> <miktar> : Sandıktan al
+- explore : Otomatik keşif modu
+- branchMine <uzunluk> <dalSayısı> <yön> : Branch mining
+- plan <hedef> : Uzun vadeli plan yap
+
+SUNUCU KOMUTLARI:
+/lobby, /hub, /spawn, /home, /sethome, /delhome, /warp, /tpa, /tpaccept, /tp, /tphere, /tpall, /kick, /ban, /mute, /warn, /report, /help, /rules, /discord, /website, /store, /vote, /claim, /kit, /daily, /quest, /mission, /achievement, /rank, /level, /exp, /skill, /class, /race, /clan, /alliance, /war, /peace, /trade, /auction, /market, /bazaar, /blackmarket, /mine, /farm, /fish, /hunt, /cook, /brew, /enchant, /repair, /rename, /color, /hat, /nick, /skin, /cape, /pet, /mount, /disguise, /fly, /speed, /gm, /gamemode, /time, /weather, /pvp, /god, /heal, /feed, /clear, /invsee, /enderchest, /back, /tpahere, /list, /ping, /stats, /duel, /party, /guild, /f, /friend, /msg, /r, /ignore, /pay, /bal, /withdraw, /deposit
+
+ÖZEL GUI'LER:
+- AesirMC Login: NPC "ASMP" ye tıkla, End Crystal butonuna tıkla.
+- Sunucu Seçimi: "Oyuna Gir" butonuna tıkla.
+- Lobby Menü: "Oyuna Gir", "Sunucuya Git", "Başla" butonlarına tıkla.
+- Kategori Menüsü: "Survival", "KitPvP", "SkyBlock", "Creative", "Factions", "Prison", "BedWars", "SkyWars", "EggWars", "Build" butonlarına tıkla.
+
+KURALLAR:
+- Kullanıcı doğal dilde komut verecek.
+- JSON formatında cevap ver: {"action": "komut", "params": ["param"]}
+- Birden fazla adım varsa dizi olarak cevap ver: [{"action": "move", "params": ["x","y","z"]}, {"action": "mine", "params": ["diamond_ore"]}]
+- Sadece JSON cevap ver, başka bir şey yazma.`;
+
   try {
     const response = await axios.post(
       'https://api.mistral.ai/v1/chat/completions',
       {
-        model: 'mistral-small-latest',
+        model: config.model || 'mistral-small-latest',
         messages: [
-          { role: 'system', content: `Sen Minecraft'ta yaşayan bir yapay zeka ajanısın.
-          Yeteneklerin: move, mine, combat, chat, follow, stopFollow, eat, observe, craft, use, equip.
-          Sunucu komutları: /lobby, /spawn, /hub, /tpa, /tpaccept, /home, /sethome, /delhome, /warp, /kit, /shop, /market, /bal, /pay, /trade, /duel, /party, /guild, /f, /friend, /msg, /r, /ignore, /list, /ping, /stats, /rank, /level, /exp, /quest, /mission, /achievement, /claim, /daily, /vote, /store, /discord, /website, /rules, /help.
-          Özel GUI: AesirMC'de NPC "ASMP" ye tıkla, End Crystal butonuna tıkla.
-          Kullanıcı doğal dilde komut verecek. JSON formatında cevap ver: {"action": "komut", "params": ["param"]}
-          Sadece JSON cevap ver, başka bir şey yazma.` },
+          { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
-        max_tokens: 200
+        max_tokens: 300
       },
       {
         headers: {
@@ -51,7 +101,7 @@ async function askAI(prompt) {
   }
 }
 
-// ============ BOT OLUŞTUR ============
+// ============ BOT ============
 function createBot() {
   console.log(`🔄 Bağlanılıyor: ${config.serverHost}:${config.serverPort}`);
   io.emit('log', { type: 'sistem', message: `🔄 Bağlanılıyor: ${config.serverHost}` });
@@ -73,6 +123,8 @@ function createBot() {
     reconnectAttempts = 0;
     loginDone = false;
     updateStatus();
+    history.push({ time: Date.now(), event: 'Giriş yapıldı', username: bot.username });
+    saveHistory();
   });
 
   bot.once('spawn', () => {
@@ -87,19 +139,12 @@ function createBot() {
       console.error('Pathfinder ayar hatası:', err.message);
     }
 
-    // AesirMC Login
     setTimeout(() => doAesirLogin(), 3000);
-
-    // Radar başlat
     startRadar();
-
-    // Ping başlat
     startPing();
-
-    // Envanter başlat
     startInventory();
+    startAutoRules();
 
-    // AFK başlat (login olunca)
     setTimeout(() => {
       if (!loginDone) {
         bot.chat('Hazırım! Ne yapmamı istersin?');
@@ -118,6 +163,8 @@ function createBot() {
     io.emit('log', { type: 'sistem', message: `⚠️ Bağlantı kesildi: ${reason}` });
     stopFollow();
     stopAFK();
+    history.push({ time: Date.now(), event: 'Bağlantı kesildi', reason });
+    saveHistory();
     reconnect();
   });
 
@@ -133,15 +180,26 @@ function createBot() {
     const msg = message.toString();
     console.log('📩', msg);
     io.emit('log', { type: 'sohbet', message: `📩 ${msg}` });
+    chatHistory.push({ time: Date.now(), type: 'sunucu', message: msg });
+    saveChatHistory();
+
     if (!loginDone && (msg.includes('giriş yaptın') || msg.includes('hoş geldin') || msg.includes('lobby'))) {
       loginDone = true;
       io.emit('log', { type: 'sistem', message: '✅ Login başarılı!' });
       startAFK();
     }
+
+    // Otomatik TPA kabul
+    if (msg.includes('tpa') && msg.includes(bot.username)) {
+      bot.chat('/tpaccept');
+      io.emit('log', { type: 'bot', message: '✅ TPA kabul edildi.' });
+    }
   });
 
   bot.on('whisper', (username, message) => {
     io.emit('log', { type: 'sohbet', message: `💬 ${username} (özel): ${message}` });
+    chatHistory.push({ time: Date.now(), type: 'özel', from: username, message });
+    saveChatHistory();
     if (message.toLowerCase().includes('tpa')) {
       bot.chat(`/tpaccept`);
       bot.whisper(username, 'TPA kabul edildi.');
@@ -151,7 +209,7 @@ function createBot() {
   bot.on('windowOpen', (window) => {
     io.emit('log', { type: 'sistem', message: `🪟 Pencere açıldı: ${window.title}` });
     if (window.title.includes('Login') || window.title.includes('Lobby') || window.title.includes('Menü')) {
-      // End Crystal slotu genelde 13 veya 22
+      // End Crystal slotu 13 veya 22
       const targetSlot = 13;
       try {
         bot.clickWindow(targetSlot, 0, 0);
@@ -260,6 +318,34 @@ function startInventory() {
   }, 5000);
 }
 
+// ============ OTOMATİK KURALLAR ============
+function startAutoRules() {
+  setInterval(() => {
+    if (!bot || !bot.entity) return;
+    try {
+      // Can düşükse yemek ye
+      if (bot.health < 10 && bot.food < 20) {
+        const items = bot.inventory.items();
+        const food = items.find(i => i.foodPoints > 0);
+        if (food) {
+          bot.equip(food, 'hand');
+          bot.consume();
+          io.emit('log', { type: 'sistem', message: '🍖 Otomatik yemek yendi.' });
+        }
+      }
+
+      // Düşman varsa saldır
+      const enemy = bot.nearestEntity(e =>
+        e.type === 'mob' && (e.name.includes('zombie') || e.name.includes('skeleton') || e.name.includes('spider'))
+      );
+      if (enemy && bot.entity.position.distanceTo(enemy.position) < 10) {
+        bot.pvp.attack(enemy);
+        io.emit('log', { type: 'sistem', message: `⚔️ Otomatik savaş: ${enemy.name}` });
+      }
+    } catch (err) { /* sessiz */ }
+  }, 5000);
+}
+
 // ============ KOMUT ÇALIŞTIR ============
 async function executeAction(action, params) {
   switch (action) {
@@ -272,6 +358,8 @@ async function executeAction(action, params) {
         const msg = `${x}, ${y}, ${z} gidildi.`;
         bot.chat(msg);
         io.emit('log', { type: 'bot', message: `✅ ${msg}` });
+        history.push({ time: Date.now(), event: 'Hareket', coords: `${x},${y},${z}` });
+        saveHistory();
       } catch (err) {
         io.emit('log', { type: 'hata', message: `❌ Hareket hatası: ${err.message}` });
       }
@@ -288,6 +376,8 @@ async function executeAction(action, params) {
         await bot.dig(block);
         bot.chat(`${type} kazıldı.`);
         io.emit('log', { type: 'bot', message: `✅ ${type} kazıldı.` });
+        history.push({ time: Date.now(), event: 'Kazıldı', block: type });
+        saveHistory();
       } catch (err) {
         io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       }
@@ -304,6 +394,8 @@ async function executeAction(action, params) {
         await bot.pvp.attack(entity);
         bot.chat(`${entity.name} saldırıldı.`);
         io.emit('log', { type: 'bot', message: `✅ ${entity.name} saldırıldı.` });
+        history.push({ time: Date.now(), event: 'Savaş', target: entity.name });
+        saveHistory();
       } catch (err) {
         io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
       }
@@ -355,6 +447,8 @@ async function executeAction(action, params) {
       if (msg) {
         bot.chat(msg);
         io.emit('log', { type: 'bot', message: `💬 ${msg}` });
+        chatHistory.push({ time: Date.now(), type: 'bot', message: msg });
+        saveChatHistory();
       }
       break;
     }
@@ -375,8 +469,36 @@ async function executeAction(action, params) {
       }
       break;
     }
+    case 'craft': {
+      const itemName = params[0];
+      const count = parseInt(params[1]) || 1;
+      try {
+        await bot.craft(itemName, count);
+        bot.chat(`${count} adet ${itemName} yapıldı.`);
+        io.emit('log', { type: 'bot', message: `✅ ${count} adet ${itemName} yapıldı.` });
+        history.push({ time: Date.now(), event: 'Eşya yapıldı', item: itemName, count });
+        saveHistory();
+      } catch (err) {
+        io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
+      }
+      break;
+    }
+    case 'explore': {
+      bot.chat('Keşif modu başlatılıyor...');
+      io.emit('log', { type: 'bot', message: '🔍 Keşif modu başlatılıyor...' });
+      exploreLoop();
+      break;
+    }
+    case 'branchMine': {
+      const length = parseInt(params[0]) || 50;
+      const branches = parseInt(params[1]) || 5;
+      const direction = params[2] || 'kuzey';
+      bot.chat(`⛏️ Branch mining başlatılıyor: ${branches} dal, ${length} blok, yön: ${direction}`);
+      io.emit('log', { type: 'bot', message: `⛏️ Branch mining başlatılıyor: ${branches} dal, ${length} blok, yön: ${direction}` });
+      branchMineLoop(length, branches, direction);
+      break;
+    }
     default: {
-      // Sunucu komutu ise
       if (action.startsWith('/')) {
         bot.chat(action);
         io.emit('log', { type: 'bot', message: `📨 ${action} gönderildi.` });
@@ -385,6 +507,65 @@ async function executeAction(action, params) {
       }
     }
   }
+}
+
+// ============ KEŞİF DÖNGÜSÜ ============
+async function exploreLoop() {
+  for (let i = 0; i < 10; i++) {
+    if (!bot || !bot.entity) break;
+    const angle = Math.random() * 2 * Math.PI;
+    const distance = 50 + Math.random() * 100;
+    const targetX = bot.entity.position.x + Math.cos(angle) * distance;
+    const targetZ = bot.entity.position.z + Math.sin(angle) * distance;
+    try {
+      await bot.pathfinder.goto({ x: targetX, y: bot.entity.position.y, z: targetZ });
+      // Keşif bulgusu
+      const villagers = Object.values(bot.entities).filter(e => e.type === 'mob' && e.name === 'villager');
+      if (villagers.length > 0) {
+        discoveries.push({ time: Date.now(), type: 'köy', coords: `${targetX}, ${bot.entity.position.y}, ${targetZ}` });
+        saveDiscoveries();
+        bot.chat(`🏘️ Köy bulundu!`);
+        io.emit('log', { type: 'bot', message: `🏘️ Köy bulundu!` });
+      }
+      await sleep(2000);
+    } catch (err) { break; }
+  }
+  bot.chat('✅ Keşif tamamlandı.');
+  io.emit('log', { type: 'bot', message: '✅ Keşif tamamlandı.' });
+}
+
+// ============ BRANCH MINING ============
+async function branchMineLoop(length, branches, direction) {
+  const startCoords = { x: bot.entity.position.x, y: bot.entity.position.y, z: bot.entity.position.z };
+  const dirMap = { 'kuzey': 0, 'doğu': 1, 'güney': 2, 'batı': 3 };
+  const dir = dirMap[direction] || 0;
+
+  for (let b = 0; b < branches; b++) {
+    const branchX = startCoords.x + (b * 3);
+    const branchZ = startCoords.z;
+    try {
+      await bot.pathfinder.goto({ x: branchX, y: startCoords.y, z: branchZ });
+      for (let i = 0; i < length; i++) {
+        let tx = branchX, tz = branchZ;
+        switch (dir) {
+          case 0: tz = branchZ - i; break;
+          case 1: tx = branchX + i; break;
+          case 2: tz = branchZ + i; break;
+          case 3: tx = branchX - i; break;
+        }
+        await bot.pathfinder.goto({ x: tx, y: startCoords.y, z: tz });
+        // Değerli blokları kaz
+        const valuable = ['diamond_ore', 'iron_ore', 'gold_ore', 'emerald_ore'];
+        for (const v of valuable) {
+          const block = bot.findBlock({ matching: b => b.name === v, maxDistance: 3 });
+          if (block) { await bot.dig(block); }
+        }
+      }
+      io.emit('log', { type: 'bot', message: `✅ ${b+1}. dal tamamlandı.` });
+    } catch (err) { break; }
+  }
+  bot.chat('✅ Branch mining tamamlandı.');
+  io.emit('log', { type: 'bot', message: '✅ Branch mining tamamlandı.' });
 }
 
 // ============ TAKİP DÖNGÜSÜ ============
@@ -416,7 +597,7 @@ function stopFollow() {
   }
 }
 
-// ============ DURUM GÜNCELLEME ============
+// ============ DURUM ============
 function updateStatus() {
   if (!bot || !bot.entity) return;
   io.emit('botStatus', {
@@ -444,6 +625,9 @@ function reconnect() {
 io.on('botCommand', async (data) => {
   const command = data.command;
   console.log(`📨 Web'den komut: ${command}`);
+  chatHistory.push({ time: Date.now(), type: 'kullanıcı', message: command });
+  saveChatHistory();
+
   const response = await askAI(command);
   if (response) {
     try {
@@ -456,7 +640,9 @@ io.on('botCommand', async (data) => {
         await executeAction(parsed.action, parsed.params || []);
       }
     } catch (err) {
-      io.emit('log', { type: 'hata', message: `❌ ${err.message}` });
+      io.emit('log', { type: 'hata', message: `❌ JSON parse hatası: ${err.message}` });
+      // Normal cevap olarak göster
+      io.emit('log', { type: 'ai', message: `🧠 ${response}` });
     }
   }
 });
