@@ -13,7 +13,7 @@ const ping = document.getElementById('ping');
 const radarCanvas = document.getElementById('radarCanvas');
 const ctx = radarCanvas.getContext('2d');
 
-// ============ LOG EKLE ============
+// ============ LOG ============
 function addLog(type, message) {
   const time = new Date().toLocaleTimeString();
   const entry = document.createElement('div');
@@ -23,7 +23,7 @@ function addLog(type, message) {
   logContainer.scrollTop = logContainer.scrollHeight;
 }
 
-// ============ KOMUT GÖNDER ============
+// ============ KOMUT ============
 function sendCommand(command) {
   if (!command) return;
   socket.emit('command', command);
@@ -47,7 +47,7 @@ function loadQuickCommands() {
     } else {
       quickCommands = [
         { label: '🔍 Keşfet', command: 'explore' },
-        { label: '⏹️ Durdur', command: 'explore durdur' },
+        { label: '⏹️ Durdur', command: 'stopFollow' },
         { label: '⛏️ Elmas Ara', command: 'mine diamond_ore' },
         { label: '👀 Gözlem', command: 'observe' },
         { label: '🍖 Yemek Ye', command: 'eat' }
@@ -157,14 +157,11 @@ function drawRadar(entities) {
   const radius = Math.min(w, h) / 2 - 10;
 
   ctx.clearRect(0, 0, w, h);
-
-  // Arka plan
   ctx.fillStyle = '#0a0a1a';
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
   ctx.fill();
 
-  // Halkalar
   ctx.strokeStyle = '#2a4a5a';
   ctx.lineWidth = 1;
   for (let r = radius / 4; r < radius; r += radius / 4) {
@@ -173,7 +170,6 @@ function drawRadar(entities) {
     ctx.stroke();
   }
 
-  // Merkez çizgileri
   ctx.strokeStyle = '#2a4a5a';
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -183,7 +179,6 @@ function drawRadar(entities) {
   ctx.lineTo(centerX, centerY + radius);
   ctx.stroke();
 
-  // Bot
   ctx.fillStyle = '#00d4ff';
   ctx.beginPath();
   ctx.arc(centerX, centerY, 5, 0, 2 * Math.PI);
@@ -193,7 +188,6 @@ function drawRadar(entities) {
   ctx.textAlign = 'center';
   ctx.fillText('Bot', centerX, centerY - 10);
 
-  // Varlıklar
   entities.forEach(e => {
     if (e.distance > 20) return;
     const angle = Math.atan2(e.z, e.x);
@@ -227,6 +221,33 @@ function updateInventory(items) {
   ).join('');
 }
 
+// ============ TARİHÇE ============
+function updateHistory(data) {
+  const list = document.getElementById('historyList');
+  if (!list) return;
+  list.innerHTML = data.slice(-20).map(h =>
+    `<li>${new Date(h.time).toLocaleTimeString()} - ${h.event} ${h.block ? '🔹 '+h.block : ''} ${h.coords ? '📍 '+h.coords : ''}</li>`
+  ).join('');
+}
+
+// ============ KEŞİFLER ============
+function updateDiscoveries(data) {
+  const list = document.getElementById('discoveriesList');
+  if (!list) return;
+  list.innerHTML = data.map(d =>
+    `<li>${new Date(d.time).toLocaleTimeString()} - ${d.type} 📍 ${d.coords}</li>`
+  ).join('');
+}
+
+// ============ SOHBET GEÇMİŞİ ============
+function updateChatHistory(data) {
+  const list = document.getElementById('chatHistoryList');
+  if (!list) return;
+  list.innerHTML = data.slice(-20).map(c =>
+    `<li>${new Date(c.time).toLocaleTimeString()} - ${c.type}: ${c.message}</li>`
+  ).join('');
+}
+
 // ============ SOCKET ============
 socket.on('log', (data) => addLog(data.type, data.message));
 socket.on('botStatus', (data) => {
@@ -241,9 +262,36 @@ socket.on('radarData', (data) => drawRadar(data));
 socket.on('inventory', (data) => updateInventory(data));
 
 // ============ SAYFA YÜKLENİNCE ============
+async function loadHistory() {
+  try {
+    const response = await fetch('/api/history');
+    const data = await response.json();
+    updateHistory(data);
+  } catch (err) {}
+}
+
+async function loadDiscoveries() {
+  try {
+    const response = await fetch('/api/discoveries');
+    const data = await response.json();
+    updateDiscoveries(data);
+  } catch (err) {}
+}
+
+async function loadChatHistory() {
+  try {
+    const response = await fetch('/api/chat-history');
+    const data = await response.json();
+    updateChatHistory(data);
+  } catch (err) {}
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadQuickCommands();
   loadConfig();
+  loadHistory();
+  loadDiscoveries();
+  loadChatHistory();
   addLog('sistem', '🚀 Dashboard bağlandı.');
   addLog('sistem', '💡 Doğal dilde komut gönderebilirsiniz.');
 });
