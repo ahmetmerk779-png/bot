@@ -1,12 +1,15 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body { background: #0a0a1a; color: #e0e0e0; font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; }
-#app { max-width: 1200px; margin: 0 auto; }
+#app { max-width: 1400px; margin: 0 auto; }
 
 header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: #1a1a2e; border-radius: 10px; margin-bottom: 20px; border: 1px solid #2a2a4e; }
-header h1 { color: #00d4ff; }
+header h1 { color: #00d4ff; font-size: 28px; }
 #status { padding: 5px 15px; border-radius: 20px; background: #00ff8844; color: #00ff88; border: 1px solid #00ff88; }
 
-#settings-panel, #botInfo, #radarContainer, #inventoryContainer, #console, #quickCommands {
+#dashboard { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+@media (max-width: 768px) { #dashboard { grid-template-columns: 1fr; } }
+
+#settings-panel, #botInfo, #radarContainer, #inventoryContainer, #console, #quickCommands, #historyContainer, #discoveriesContainer, #chatHistoryContainer {
   background: #1a1a2e; padding: 15px; border-radius: 10px; border: 1px solid #2a2a4e; margin-bottom: 15px;
 }
 h2 { font-size: 18px; color: #00d4ff; margin-bottom: 10px; }
@@ -22,8 +25,8 @@ h2 { font-size: 18px; color: #00d4ff; margin-bottom: 10px; }
 #radarCanvas { background: #0a0a1a; border-radius: 50%; border: 2px solid #2a4a5a; width: 100%; max-width: 300px; height: auto; aspect-ratio: 1/1; }
 #radarLegend { font-size: 12px; color: #888; margin-top: 5px; }
 
-#inventoryList { list-style: none; padding: 0; max-height: 150px; overflow-y: auto; }
-#inventoryList li { padding: 3px 10px; background: #0d0d1a; border-radius: 4px; margin: 3px 0; border-left: 3px solid #00d4ff; }
+#inventoryList, #historyList, #discoveriesList, #chatHistoryList { list-style: none; padding: 0; max-height: 150px; overflow-y: auto; }
+#inventoryList li, #historyList li, #discoveriesList li, #chatHistoryList li { padding: 3px 10px; background: #0d0d1a; border-radius: 4px; margin: 3px 0; border-left: 3px solid #00d4ff; }
 
 #logContainer { height: 250px; overflow-y: auto; background: #0d0d1a; border-radius: 5px; padding: 10px; font-family: 'Consolas', monospace; font-size: 13px; margin-bottom: 10px; }
 #logContainer .log-entry { padding: 2px 0; border-bottom: 1px solid #1a1a2e; }
