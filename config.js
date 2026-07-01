@@ -9,14 +9,15 @@ const defaults = {
   serverPort: 25565,
   version: '1.8.9',
   auth: 'offline',
-  renderDistance: 10
+  renderDistance: 10,
+  allowCoding: false, // Güvenlik: kod üretme kapalı
+  model: 'mistral-small-latest'
 };
 
 function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_PATH)) {
-      const data = fs.readFileSync(CONFIG_PATH, 'utf8');
-      return { ...defaults, ...JSON.parse(data) };
+      return { ...defaults, ...JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8')) };
     }
   } catch (err) {
     console.error('Config okuma hatası:', err.message);
@@ -34,4 +35,4 @@ function saveConfig(newConfig) {
   }
 }
 
-module.exports = { loadConfig, saveConfig, defaults };
+module.exports = { loadConfig, saveConfig };
